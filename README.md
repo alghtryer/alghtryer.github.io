@@ -1,2 +1,2 @@
 # alghtryer.github.io
-alghtryer.github.io
+*alghtryer@gmail.com*
