@@ -19,7 +19,7 @@
             .inner {
             position: absolute;
             max-width: 960px;
-            top: 40%;
+            top: 30%;
             left: 20%;
             right: 0;
             //margin-top: -9px;
@@ -27,7 +27,8 @@
             font-weight: 400;
             }
             .grid {
-            display: flex; flex-wrap: wrap; 
+            display: flex; 
+			flex-wrap: wrap; 
             justify-content: center; 
             align-items: center; 
             }
@@ -41,8 +42,14 @@
             width: 100%; 
             }
             @media only screen and (max-width:600px) {
+			.inner {
+			left: 10%;
+			}
             .cell {
             width: 100%;
+            }
+			img {
+			padding-top: 50px;
             }
             }
         </style>
