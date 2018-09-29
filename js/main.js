@@ -13,7 +13,7 @@ $('#usr1').typeIt({
 
                 $('#usr2').find('.ti-cursor').addClass('is-hidden');
                 $('#usr3').typeIt({
-                    strings: 'A DEVELOPER',
+                    strings: 'A CODER',
                     typeSpeed: 100,
                     autoStart: false,
                     callback: function() {
@@ -36,15 +36,7 @@ function copy(that){
 }
 function notifyBar() {
 	if(! $('.alert-box').length) {
-		$('<div class="alert-box success" ><i class="fa fa-info-circle"></i> Click on mail to copy!</div>').prependTo('#intro').delay(3000).fadeOut(1000, function() {
-    				$('.alert-box').remove();
-						notifyBar2();
-    				});
-	}
-}
-function notifyBar2() {
-	if(! $('.alert-box').length) {
-		$('<div class="alert-box success" ><i class="fa fa-info-circle"></i> Click on my name for portfolio :)</div>').prependTo('#intro').delay(5000).fadeOut(1000, function() {
+		$('<div class="alert-box success" ><i class="fa fa-info-circle"></i> Click on mail to copy!</div>').prependTo('#intro').delay(5000).fadeOut(1000, function() {
     				$('.alert-box').remove();
     				});
 	}
