@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Inconsolata');
+@import url('https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap');
 html,
 body {
 	height: 100%;
@@ -19,8 +20,9 @@ body {
 	//font-size: 1.5em;
 	//line-height: 1.6;
 	font-weight: 300;
-	font-family: 'Inconsolata', monospace;
+	//font-family: 'Inconsolata', monospace;
 	//color: #222;
+	font-family: 'Source Code Pro', monospace;
 }
 
 h1,
@@ -62,7 +64,6 @@ ol {
 }
 .intro-content h1 {
 	color: #000;
-	font-family: 'Inconsolata', monospace;
 	font-size: 8.4rem;
 	line-height: 1.071;
 	max-width: 900px;
@@ -70,11 +71,11 @@ ol {
 	margin-bottom: .6rem;
 	margin-left: auto;
 	margin-right: auto;
+	letter-spacing: .5rem;
 }
 
 .intro-content h5 {
 	color: #000;
-	font-family: 'Inconsolata', monospace;
 	font-size: 2.3rem;
 	line-height: 1.565;
 	margin-bottom: 0;
@@ -82,7 +83,6 @@ ol {
 }
 
 .intro-content .intro-position {
-	font-family: 'Inconsolata', monospace;
 	font-size: 1.6rem;
 	line-height: 2.1rem;
 	//text-transform: uppercase;
