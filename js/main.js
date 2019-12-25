@@ -6,7 +6,7 @@ $('#usr1').typeIt({
 
         $('#usr1').find('.ti-cursor').addClass('is-hidden'); 
         $('#usr2').typeIt({
-            strings: 'Alghtryer :)',
+            strings: 'ALGHTRYER',
             typeSpeed: 100,
             autoStart: false,
             callback: function() {
