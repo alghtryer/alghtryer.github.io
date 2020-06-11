@@ -38,9 +38,9 @@
      color: #fff;
      font-size: 34px;
      line-height: 1;
-     letter-spacing: 0.26em;
-     font-weight: 600;
-     font-family: 'Inconsolata', monospace;
+     letter-spacing: 0.06em;
+     font-weight: 400;
+     font-family: Adios;
      margin-top: 0;
      margin-bottom: 0;
 }
@@ -113,4 +113,8 @@
      .social p{
          font-size: 13px;
     }
+}
+@font-face {
+  font-family: Adios;
+  src: url(Adios.woff);
 }
