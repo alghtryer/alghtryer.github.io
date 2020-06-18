@@ -13,6 +13,7 @@
      -moz-background-size: cover;
      -o-background-size: cover;
      background-size: cover;
+     box-shadow: inset 0px 0px 570px 575px rgba(0, 0, 0, 0.7);
 }
  .outer-container:after {
      content: '';
@@ -23,11 +24,13 @@
      left: 10px;
      border: 1px solid rgba(255,255,255,.6);
 }
+/*
  .inner-container {
      display: table-cell;
      vertical-align: middle;
      text-align: center;
 }
+*/
  .centered-content {
      display: inline-block;
      text-align: center;
@@ -95,16 +98,14 @@
      background-position: center;
      opacity: .07;
 }
- @media (max-width: 600px) {
-     .h1 {
-         font-size: 27px;
-         letter-spacing: 0.2em;
+@media screen and (max-width: 600px) {
+     h1 {
+         font-size: 47px;
     }
 }
- @media (max-width: 400px) {
-     .h1 {
-         font-size: 24px;
-         letter-spacing: 0.1em;
+@media screen and (max-width: 400px) {
+     h1 {
+         font-size: 40px;
     }
      .p {
          font-size: 12px;
