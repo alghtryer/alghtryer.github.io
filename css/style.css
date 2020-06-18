@@ -24,19 +24,20 @@
      left: 10px;
      border: 1px solid rgba(255,255,255,.6);
 }
-/*
+
  .inner-container {
      display: table-cell;
      vertical-align: middle;
      text-align: center;
 }
-*/
+/*
  .centered-content {
      display: inline-block;
      text-align: center;
      background-color:rgba(0, 0, 0, 0.7);
      z-index: 2;
 }
+*/
  h1{
      color: #fff;
      font-size: 57px;
