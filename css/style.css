@@ -15,7 +15,8 @@
      background-size: cover;
      /* box-shadow: inset 0px 0px 570px 575px rgba(0, 0, 0, 0.7); */
 }
- .outer-container:after {
+ /*
+.outer-container:after {
      content: '';
      position: fixed;
      top: 10px;
@@ -24,6 +25,7 @@
      left: 10px;
      border: 1px solid rgba(255,255,255,.6);
 }
+*/
 
  .inner-container {
      display: table-cell;
