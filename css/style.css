@@ -78,6 +78,7 @@
      font-weight: 300;
      letter-spacing: 0.1em;
      text-align: center;
+     text-transform: uppercase;
 }
  .icon {
      padding: 7px;
