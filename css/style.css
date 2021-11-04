@@ -29,7 +29,9 @@
 
  .inner-container {
      display: table-cell;
-     vertical-align: middle;
+     /* vertical-align: middle; */
+     vertical-align: top;
+     padding-top:130px;
      text-align: center;
 }
 /*
