@@ -30,7 +30,7 @@
      display: table-cell;
      vertical-align: middle;
      vertical-align: top;
-     padding-top:130px;
+     /* padding-top:130px; */
      text-align: center;
 }
  .centered-content {
