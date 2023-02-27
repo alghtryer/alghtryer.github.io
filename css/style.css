@@ -103,12 +103,12 @@
 }
 @media screen and (max-width: 600px) {
      h1 {
-         font-size: 43px;
+         font-size: 47px;
     }
 }
 @media screen and (max-width: 400px) {
      h1 {
-         font-size: 39px;
+         font-size: 43px;
     }
      p {
          font-size: 9px;
