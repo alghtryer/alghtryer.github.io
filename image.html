@@ -1,4 +1,11 @@
-<script>
+
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metadata Fetcher</title>
+    <script>
 async function getPageMetadata(url) {
     try {
         const response = await fetch(url);
@@ -39,14 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fetchButton').addEventListener('click', handleFetchMetadata);
 });
 </script>
-// HTML dio
-const htmlContent = `
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metadata Fetcher</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -81,6 +80,6 @@ const htmlContent = `
         <img id="ogImage" src="" alt="Open Graph Slika">
     </div>
 </body>
-</html>`;
-<script>document.write(htmlContent);</script>
+</html>
+
 
