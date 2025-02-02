@@ -1,3 +1,4 @@
+<script>
 async function getPageMetadata(url) {
     try {
         const response = await fetch(url);
@@ -37,7 +38,7 @@ function handleFetchMetadata() {
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fetchButton').addEventListener('click', handleFetchMetadata);
 });
-
+</script>
 // HTML dio
 const htmlContent = `
 <!DOCTYPE html>
