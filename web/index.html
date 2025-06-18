@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prikaz OG Naslova i Slike</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+    input, button { padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+    .loader { display: none; margin-top: 10px; }
+    #result img { max-width: 100%; margin-top: 10px; border: 1px solid #ccc; }
+    #titleText { font-size: 20px; font-weight: bold; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>OG Slika i Naslov sa Linka</h2>
+  <input type="text" id="urlInput" placeholder="Unesi URL (https://...)" />
+  <button id="generateBtn">Prikaži</button>
+  <div class="loader">⏳ Učitavanje...</div>
+
+  <div id="result">
+    <img id="ogImage" src="" alt="OG Slika" style="display:none;" />
+    <div id="titleText"></div>
+  </div>
+
+  <script>
+    document.getElementById('generateBtn').addEventListener('click', async function () {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) return alert('Unesi URL.');
+      document.querySelector('.loader').style.display = 'block';
+
+      const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url);
+
+      try {
+        const response = await fetch(proxyUrl);
+        const html = await response.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || 'Nema naslova';
+        const image = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+
+        document.getElementById('titleText').textContent = title;
+
+        if (image) {
+          const imgEl = document.getElementById('ogImage');
+          imgEl.src = image;
+          imgEl.style.display = 'block';
+        } else {
+          document.getElementById('ogImage').style.display = 'none';
+        }
+
+      } catch (e) {
+        alert('Došlo je do greške.');
+        console.error(e);
+      } finally {
+        document.querySelector('.loader').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
