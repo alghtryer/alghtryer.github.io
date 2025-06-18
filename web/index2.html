@@ -29,6 +29,9 @@
   <button id="screenshotBtn">Uzmi Screenshot</button>
   <br /><br />
  <img id="captured" alt="Snimak" style="border:1px solid #ccc; max-width:100%; display:none;" />
+<a id="downloadBtn" href="#" download="screenshot.jpg" style="display:none;">
+  <button>Sačuvaj sliku</button>
+</a>
 
 <script>
   const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
@@ -75,16 +78,18 @@ if (title.length > 105) {
     html2canvas(element, {
       useCORS: true
     }).then(function (canvas) {
-      callback(canvas.toDataURL("image/png").replace("data:image/png;base64,", ""));
+      callback(canvas.toDataURL("image/jpeg", 0.8).replace("data:image/jpeg;base64,", ""));
     });
   }
 
-  $("#screenshotBtn").on("click", function () {
-    const element = $("#result").get(0);
-    getScreenshotOfElement(element, function (data) {
-      $("#captured").attr("src", "data:image/png;base64," + data).show();
-    });
+ $("#screenshotBtn").on("click", function () {
+  const element = $("#result").get(0);
+  getScreenshotOfElement(element, function (data) {
+    const dataUrl = "data:image/jpeg;base64," + data;
+    $("#captured").attr("src", dataUrl).show();
+    $("#downloadBtn").attr("href", dataUrl).show();
   });
+});
 </script>
 
 </body>
