@@ -50,6 +50,12 @@
 
       $("#titleText").text(title);
 
+if (title.length > 105) {
+  $("#titleText").css("font-size", "42px");
+} else {
+  $("#titleText").css("font-size", "60px");
+}
+
       if (image) {
         // Proxy za sliku, da nema CORS problema
         const proxiedImage = proxyUrl + encodeURIComponent(image);
