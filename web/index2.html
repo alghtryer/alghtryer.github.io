@@ -28,7 +28,7 @@
 
   <button id="screenshotBtn">Uzmi Screenshot</button>
   <br /><br />
-  <img id="captured" alt="Snimak" style="border:1px solid #ccc; max-width:100%;" />
+ <img id="captured" alt="Snimak" style="border:1px solid #ccc; max-width:100%; display:none;" />
 
 <script>
   const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
@@ -82,7 +82,7 @@ if (title.length > 105) {
   $("#screenshotBtn").on("click", function () {
     const element = $("#result").get(0);
     getScreenshotOfElement(element, function (data) {
-      $("#captured").attr("src", "data:image/png;base64," + data);
+      $("#captured").attr("src", "data:image/png;base64," + data).show();
     });
   });
 </script>
