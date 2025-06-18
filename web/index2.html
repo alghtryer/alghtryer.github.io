@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OG Slika i Naslov sa Proxy</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+    input, button { padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+    .loader { display: none; margin-top: 10px; }
+    #result img { max-width: 100%; margin-top: 10px; border: 1px solid #ccc; }
+    #titleText { font-size: 60px; font-weight: bold; margin-top: 20px; text-align: center; }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+  <h2>OG Slika i Naslov sa Linka preko Proxy-a</h2>
+  <input type="text" id="urlInput" placeholder="Unesi URL (https://...)" />
+  <button id="generateBtn">Prikaži</button>
+  <div class="loader">⏳ Učitavanje...</div>
+
+  <div id="result" style="background: white; padding: 10px; border: 1px solid #ddd;">
+    <img id="ogImage" src="" alt="OG Slika" style="display:none;" />
+    <div id="titleText"></div>
+  </div>
+
+  <button id="screenshotBtn">Uzmi Screenshot</button>
+  <br /><br />
+  <img id="captured" alt="Snimak" style="border:1px solid #ccc; max-width:100%;" />
+
+<script>
+  const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
+
+  $("#generateBtn").on("click", async function () {
+    const url = $("#urlInput").val().trim();
+    if (!url) return alert("Unesi URL.");
+    $(".loader").show();
+
+    try {
+      const response = await fetch(proxyUrl + encodeURIComponent(url));
+      const html = await response.text();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      const title = doc.querySelector('meta[property="og:title"]')?.getAttribute("content") || "Nema naslova";
+      const image = doc.querySelector('meta[property="og:image"]')?.getAttribute("content") || "";
+
+      $("#titleText").text(title);
+
+      if (image) {
+        // Proxy za sliku, da nema CORS problema
+        const proxiedImage = proxyUrl + encodeURIComponent(image);
+        $("#ogImage").attr("src", proxiedImage).show();
+      } else {
+        $("#ogImage").hide();
+      }
+    } catch (e) {
+      alert("Došlo je do greške.");
+      console.error(e);
+    } finally {
+      $(".loader").hide();
+    }
+  });
+
+  function getScreenshotOfElement(element, callback) {
+    html2canvas(element, {
+      useCORS: true
+    }).then(function (canvas) {
+      callback(canvas.toDataURL("image/png").replace("data:image/png;base64,", ""));
+    });
+  }
+
+  $("#screenshotBtn").on("click", function () {
+    const element = $("#result").get(0);
+    getScreenshotOfElement(element, function (data) {
+      $("#captured").attr("src", "data:image/png;base64," + data);
+    });
+  });
+</script>
+
+</body>
+</html>
