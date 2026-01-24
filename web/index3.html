@@ -48,20 +48,23 @@ input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing
 /* ✅ LOGO U SREDINI */
 #logoOverlay {
   position: absolute;
-  top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   z-index: 10;
   pointer-events: none;
 }
 
+/* logo “sjedi” na ivici slike */
 #logoOverlay img {
   max-width: 160px;
-  background: rgba(255, 255, 255, 0.9); /* ✅ pravougaona podloga */
-  padding: 12px;                       /* razmak oko logoa */
-  border-radius: 6px;                  /* blago zaobljenje (po želji) */
+  background: rgba(255,255,255,0.9);
+  padding: 12px;
+  border-radius: 6px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+
+  transform: translateY(50%); /* ✅ pola ispod */
 }
+
 
 
 </style>
@@ -160,6 +163,12 @@ $("#screenshotBtn").on("click", function () {
     $("#downloadBtn").attr("href", url).show();
   });
 });
+
+  $("#ogImage").on("load", function () {
+  const imgBottom = $(this).position().top + $(this).outerHeight();
+  $("#logoOverlay").css("top", imgBottom + "px");
+});
+
 </script>
 
 </body>
