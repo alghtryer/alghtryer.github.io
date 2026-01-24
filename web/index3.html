@@ -1,50 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OG Slika i Naslov sa Proxy</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OG Slika i Naslov sa Proxy</title>
 
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
-    input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
-    .loader { display: none; margin-top: 10px; }
-    #result img { max-width: 100%; margin-top: 10px; border: 1px solid #ccc; }
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+.loader { display: none; margin-top: 10px; }
 
-    /* ✅ ZAJEDNIČKI STIL NASLOVA */
-    #titleText {
-      font-weight: bold;
-      margin-top: 20px;
-      text-align: center;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      white-space: normal;
-      line-height: 1.2;
+#result {
+  position: relative; /* ✅ BITNO */
+  padding: 10px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+}
 
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
+#result img#ogImage {
+  max-width: 100%;
+  display: none;
+}
 
-    /* ✅ TEME */
-    .theme-dark {
-      background: black;
-    }
-    .theme-dark #titleText {
-      color: white;
-    }
+/* ✅ NASLOV */
+#titleText {
+  font-weight: bold;
+  margin-top: 20px;
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.2;
 
-    .theme-light {
-      background: white;
-    }
-    .theme-light #titleText {
-      color: black;
-    }
-  </style>
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+/* ✅ TEME */
+.theme-dark { background: black; }
+.theme-dark #titleText { color: white; }
+
+.theme-light { background: white; }
+.theme-light #titleText { color: black; }
+
+/* ✅ LOGO U SREDINI */
+#logoOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  opacity: 0.85;           /* malo transparentno */
+  pointer-events: none;   /* da ne smeta klikovima */
+}
+
+#logoOverlay img {
+  max-width: 180px;       /* prilagodi po želji */
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -53,7 +71,6 @@
 
 <input type="text" id="urlInput" placeholder="Unesi URL (https://...)" />
 
-<!-- ✅ IZBOR TEME -->
 <select id="themeSelect">
   <option value="dark">Crna tema</option>
   <option value="light">Bijela tema</option>
@@ -62,44 +79,45 @@
 <button id="generateBtn">Prikaži</button>
 <div class="loader">⏳ Učitavanje...</div>
 
-<div id="result" class="theme-dark" style="padding: 10px; border: 1px solid #ddd;">
-  <img id="ogImage" src="" alt="OG Slika" style="display:none;" />
+<div id="result" class="theme-dark">
+  <img id="ogImage" alt="OG Slika" />
+
+  <!-- ✅ LOGO -->
+  <div id="logoOverlay">
+    <img
+      src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgi5iAlCZoXh3HP-GtUO8YW7uYwxrMTQxkDoB3CJ-1BNghq_F696MthDzzHvr1U53XSv35zA1pKzpFJHEgHmfYZtiiH8J_x0iqDpIyIEF8Son6bFeEPg0iY9I3Wt0d9_WLRIlA5G7j8mXM/w800/zanimljivostixyzlogob1.png"
+      crossorigin="anonymous"
+    />
+  </div>
+
   <div id="titleText"></div>
 </div>
 
 <button id="screenshotBtn">Uzmi Screenshot</button>
 <br /><br />
 
-<img id="captured" alt="Snimak" style="border:1px solid #ccc; max-width:100%; display:none;" />
-<a id="downloadBtn" href="#" download="screenshot.jpg" style="display:none;">
+<img id="captured" style="display:none;max-width:100%;border:1px solid #ccc;">
+<a id="downloadBtn" download="screenshot.jpg" style="display:none;">
   <button>Sačuvaj sliku</button>
 </a>
 
 <script>
 const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
 
-/* ✅ PAMETNA VELIČINA FONTA */
 function setTitleText(text) {
   const el = $("#titleText");
   el.text(text);
 
-  if (text.length > 140) {
-    el.css("font-size", "34px");
-  } else if (text.length > 110) {
-    el.css("font-size", "40px");
-  } else if (text.length > 80) {
-    el.css("font-size", "48px");
-  } else {
-    el.css("font-size", "60px");
-  }
+  if (text.length > 140) el.css("font-size", "34px");
+  else if (text.length > 110) el.css("font-size", "40px");
+  else if (text.length > 80) el.css("font-size", "48px");
+  else el.css("font-size", "60px");
 }
 
-/* ✅ PROMJENA TEME */
 $("#themeSelect").on("change", function () {
-  const theme = $(this).val();
   $("#result")
     .removeClass("theme-dark theme-light")
-    .addClass(theme === "dark" ? "theme-dark" : "theme-light");
+    .addClass($(this).val() === "dark" ? "theme-dark" : "theme-light");
 });
 
 $("#generateBtn").on("click", async function () {
@@ -108,9 +126,8 @@ $("#generateBtn").on("click", async function () {
   $(".loader").show();
 
   try {
-    const response = await fetch(proxyUrl + encodeURIComponent(url));
-    const html = await response.text();
-
+    const res = await fetch(proxyUrl + encodeURIComponent(url));
+    const html = await res.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
 
     const title = doc.querySelector('meta[property="og:title"]')?.content || "Nema naslova";
@@ -123,25 +140,19 @@ $("#generateBtn").on("click", async function () {
     } else {
       $("#ogImage").hide();
     }
-
   } catch (e) {
-    alert("Došlo je do greške.");
+    alert("Greška");
     console.error(e);
   } finally {
     $(".loader").hide();
   }
 });
 
-function getScreenshotOfElement(element, callback) {
-  html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
-    callback(canvas.toDataURL("image/jpeg", 0.9));
-  });
-}
-
 $("#screenshotBtn").on("click", function () {
-  getScreenshotOfElement($("#result")[0], function (dataUrl) {
-    $("#captured").attr("src", dataUrl).show();
-    $("#downloadBtn").attr("href", dataUrl).show();
+  html2canvas($("#result")[0], { useCORS: true, scale: 2 }).then(canvas => {
+    const url = canvas.toDataURL("image/jpeg", 0.9);
+    $("#captured").attr("src", url).show();
+    $("#downloadBtn").attr("href", url).show();
   });
 });
 </script>
