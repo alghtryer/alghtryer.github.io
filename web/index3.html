@@ -65,6 +65,20 @@ input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing
   transform: translateY(-50%); /* ✅ pola ispod */
 }
 
+#imageWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 315px; /* standard OG share */
+  overflow: hidden;
+  background-color: black; /* fallback ako je slika premala */
+}
+
+#ogImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* najbolje */
+}
 
 
 </style>
