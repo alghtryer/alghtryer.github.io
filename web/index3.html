@@ -52,16 +52,17 @@ input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
-  opacity: 0.85;           /* malo transparentno */
-  pointer-events: none;   /* da ne smeta klikovima */
+  pointer-events: none;
 }
 
 #logoOverlay img {
-  max-width: 180px;       /* prilagodi po želji */
+  max-width: 160px;
+  background: rgba(255, 255, 255, 0.9); /* ✅ pravougaona podloga */
+  padding: 12px;                       /* razmak oko logoa */
+  border-radius: 6px;                  /* blago zaobljenje (po želji) */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.35);
 }
-.theme-dark #logoOverlay img {
-  filter: drop-shadow(0 0 12px rgba(255,255,255,0.9));
-}
+
 
 </style>
 
