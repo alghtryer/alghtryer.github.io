@@ -1,1 +1,89 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<title>Blogger Ads Replacer</title>
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f2f2f2;
+  padding:20px;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:8px;
+  box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+textarea{
+  width:100%;
+  height:220px;
+  margin-top:10px;
+  padding:10px;
+  font-family: monospace;
+}
+button{
+  padding:10px 20px;
+  margin-top:10px;
+  cursor:pointer;
+}
+input{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h2>Blogger ADS zamjena</h2>
+
+  <label>Tekst koji želiš umjesto ads1, ads2, ads3:</label>
+  <input type="text" id="replaceText" value="moji reklama">
+
+  <h3>Originalni HTML (Blogger kod):</h3>
+  <textarea id="inputHtml" placeholder="Zalijepi Blogger HTML ovdje..."></textarea>
+
+  <button onclick="replaceAds()">Zamijeni</button>
+
+  <h3>Novi HTML:</h3>
+  <textarea id="outputHtml" placeholder="Ovdje se pojavljuje novi HTML..."></textarea>
+</div>
+
+<script>
+function replaceAds(){
+  let html = document.getElementById("inputHtml").value;
+  let text = document.getElementById("replaceText").value;
+
+  // zamjena
+  html = html.replace(/ads1/g, `<!-- MGID New Composite Start --> 
+<div data-type="_mgwidget" data-widget-id="1113798"></div>
+<script>
+(function(w,q){
+  w[q]=w[q]||[];
+  w[q].push(["_mgc.load"])
+})(window,"_mgq");
+</script>
+<!-- MGID New Composite End -->`);
+  html = html.replace(/ads2/g, `<!-- MGID Widget_For_Long_Text--> 
+<div data-type="_mgwidget" data-widget-id="1689711">
+</div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");
+</script>
+<!-- MGID Widget_For_Long_Text--> `);
+  html = html.replace(/ads3/g, `<!-- MGID New Composite Start 2--> 
+<div data-type="_mgwidget" data-widget-id="1674325">
+</div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");
+</script>
+<!-- MGID New Composite End 2--> `);
+
+  document.getElementById("outputHtml").value = html;
+}
+</script>
+</body>
+</html>
 
