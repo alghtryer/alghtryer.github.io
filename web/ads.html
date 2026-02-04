@@ -2,88 +2,62 @@
 <html lang="bs">
 <head>
 <meta charset="UTF-8">
-<title>Blogger Ads Replacer</title>
+<title>Blogger ADS Replacer PRO</title>
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f2f2f2;
-  padding:20px;
-}
-.container{
-  max-width:900px;
-  margin:auto;
-  background:#fff;
-  padding:20px;
-  border-radius:8px;
-  box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-textarea{
-  width:100%;
-  height:220px;
-  margin-top:10px;
-  padding:10px;
-  font-family: monospace;
-}
-button{
-  padding:10px 20px;
-  margin-top:10px;
-  cursor:pointer;
-}
-input{
-  width:100%;
-  padding:8px;
-  margin-top:5px;
-}
+body{font-family:Arial;background:#eaeaea;padding:20px;}
+.box{background:#fff;padding:20px;border-radius:10px;max-width:1000px;margin:auto;box-shadow:0 0 10px rgba(0,0,0,.1);}
+textarea{width:100%;height:140px;margin:10px 0;font-family:monospace;font-size:13px;}
+button{padding:12px 25px;cursor:pointer;font-size:16px;}
+h4{margin-bottom:5px;}
 </style>
 </head>
 
 <body>
-<div class="container">
-  <h2>Blogger ADS zamjena</h2>
+<div class="box">
+<h2>Blogger ADS zamjena (MGID FIX)</h2>
 
-  <label>Tekst koji želiš umjesto ads1, ads2, ads3:</label>
-  <input type="text" id="replaceText" value="moji reklama">
+<h4>ADS1 (prva reklama)</h4>
+<textarea id="ads1"><!-- MGID New Composite Start --> 
+<div data-type="_mgwidget" data-widget-id="1113798"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID New Composite End --></textarea>
 
-  <h3>Originalni HTML (Blogger kod):</h3>
-  <textarea id="inputHtml" placeholder="Zalijepi Blogger HTML ovdje..."></textarea>
+<h4>ADS2 (druga reklama)</h4>
+<textarea id="ads2"><!-- MGID New Composite Start 2--> 
+<div data-type="_mgwidget" data-widget-id="1674325"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID New Composite End 2--></textarea>
 
-  <button onclick="replaceAds()">Zamijeni</button>
+<h4>ADS3 (treća reklama)</h4>
+<textarea id="ads3"><!-- MGID Widget_For_Long_Text--> 
+<div data-type="_mgwidget" data-widget-id="1689711"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID Widget_For_Long_Text--></textarea>
 
-  <h3>Novi HTML:</h3>
-  <textarea id="outputHtml" placeholder="Ovdje se pojavljuje novi HTML..."></textarea>
+<h3>Blogger HTML kod:</h3>
+<textarea id="inputHtml" placeholder="Zalijepi Blogger HTML kod ovdje..."></textarea>
+
+<button onclick="replaceAds()">Zamijeni ADS</button>
+
+<h3>Novi HTML:</h3>
+<textarea id="outputHtml"></textarea>
 </div>
 
 <script>
 function replaceAds(){
   let html = document.getElementById("inputHtml").value;
-  let text = document.getElementById("replaceText").value;
 
-  // zamjena
-  html = html.replace(/ads1/g, `<!-- MGID New Composite Start --> 
-<div data-type="_mgwidget" data-widget-id="1113798"></div>
-<script>
-(function(w,q){
-  w[q]=w[q]||[];
-  w[q].push(["_mgc.load"])
-})(window,"_mgq");
-</script>
-<!-- MGID New Composite End -->`);
-  html = html.replace(/ads2/g, `<!-- MGID Widget_For_Long_Text--> 
-<div data-type="_mgwidget" data-widget-id="1689711">
-</div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");
-</script>
-<!-- MGID Widget_For_Long_Text--> `);
-  html = html.replace(/ads3/g, `<!-- MGID New Composite Start 2--> 
-<div data-type="_mgwidget" data-widget-id="1674325">
-</div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");
-</script>
-<!-- MGID New Composite End 2--> `);
+  let ads1 = document.getElementById("ads1").value;
+  let ads2 = document.getElementById("ads2").value;
+  let ads3 = document.getElementById("ads3").value;
+
+  // zamjena placeholdera
+  html = html.split("ads1").join(ads1);
+  html = html.split("ads2").join(ads2);
+  html = html.split("ads3").join(ads3);
 
   document.getElementById("outputHtml").value = html;
 }
 </script>
 </body>
 </html>
-
