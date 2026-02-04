@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Image Resizer 1200x630</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.container {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 400px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+input[type=file] {
+  width: 100%;
+  margin: 15px 0;
+}
+button {
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+button:hover { background:#1e40af; }
+.preview {
+  margin-top: 15px;
+}
+.preview img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Resize & Compress Image</h2>
+  <p>Auto resize to <b>1200x630</b>, convert to JPG and compress</p>
+  <input type="file" id="upload" accept="image/*">
+  <button id="downloadBtn" disabled>Download JPG</button>
+  <div class="preview" id="preview"></div>
+</div>
+
+<script>
+const upload = document.getElementById('upload');
+const preview = document.getElementById('preview');
+const downloadBtn = document.getElementById('downloadBtn');
+
+let finalBlob = null;
+
+upload.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const img = new Image();
+  const reader = new FileReader();
+
+  reader.onload = (ev) => {
+    img.src = ev.target.result;
+  };
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const targetW = 1200;
+    const targetH = 630;
+
+    canvas.width = targetW;
+    canvas.height = targetH;
+
+    // cover resize (crop center)
+    const scale = Math.max(targetW / img.width, targetH / img.height);
+    const newW = img.width * scale;
+    const newH = img.height * scale;
+    const x = (targetW - newW) / 2;
+    const y = (targetH - newH) / 2;
+
+    ctx.drawImage(img, x, y, newW, newH);
+
+    // compress + convert to jpg
+    canvas.toBlob((blob) => {
+      finalBlob = blob;
+      const url = URL.createObjectURL(blob);
+      preview.innerHTML = `<img src="${url}" />`;
+      downloadBtn.disabled = false;
+    }, 'image/jpeg', 0.8); // 0.8 = compression quality
+  };
+
+  reader.readAsDataURL(file);
+});
+
+downloadBtn.addEventListener('click', () => {
+  if(!finalBlob) return;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(finalBlob);
+  link.download = 'image_1200x630.jpg';
+  link.click();
+});
+</script>
+</body>
+</html>
