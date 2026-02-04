@@ -29,21 +29,27 @@ h2,h3{margin:5px 0;}
 function replaceAds(){
   let html = document.getElementById("inputHtml").value;
 
-  // reklame
-  const ads1 = `<!-- MGID New Composite Start --> 
-<div data-type="_mgwidget" data-widget-id="1113798"></div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
-<!-- MGID New Composite End -->`;
+  // tekst iznad reklame
+  var preText = '<small>Tekst se nastavlja ispod oglasa.</small>\n';
 
-  const ads2 = `<!-- MGID New Composite Start 2--> 
-<div data-type="_mgwidget" data-widget-id="1674325"></div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
-<!-- MGID New Composite End 2-->`;
+  // reklame sa tekstom iznad
+  var ads1 = preText +
+    '<!-- MGID New Composite Start -->\n' +
+    '<div data-type="_mgwidget" data-widget-id="1113798"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+    '<!-- MGID New Composite End -->';
 
-  const ads3 = `<!-- MGID Widget_For_Long_Text--> 
-<div data-type="_mgwidget" data-widget-id="1689711"></div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
-<!-- MGID Widget_For_Long_Text-->`;
+  var ads2 = preText +
+    '<!-- MGID New Composite Start 2-->\n' +
+    '<div data-type="_mgwidget" data-widget-id="1674325"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+    '<!-- MGID New Composite End 2-->';
+
+  var ads3 = preText +
+    '<!-- MGID Widget_For_Long_Text-->\n' +
+    '<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+    '<!-- MGID Widget_For_Long_Text-->';
 
   // zamjena
   html = html.split("ADS1").join(ads1);
