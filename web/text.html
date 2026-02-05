@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Content Extractor</title>
+<title>Smart URL Extractor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
     font-family: Arial, sans-serif;
-    background:#f5f5f5;
+    background:#f2f2f2;
     padding:20px;
 }
 .container{
@@ -16,8 +16,8 @@ body{
     margin:auto;
     background:#fff;
     padding:20px;
-    border-radius:8px;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    border-radius:10px;
+    box-shadow:0 0 12px rgba(0,0,0,0.1);
 }
 input, button{
     width:100%;
@@ -25,57 +25,53 @@ input, button{
     margin-top:10px;
     font-size:16px;
 }
-button{
-    cursor:pointer;
-}
+button{cursor:pointer;}
 #title{
     font-size:28px;
     font-weight:bold;
-    margin:20px 0;
-}
-#image{
-    max-width:100%;
-    margin:15px 0;
-    border-radius:6px;
+    margin-bottom:15px;
 }
 #content{
     white-space:pre-wrap;
-    line-height:1.6;
+    line-height:1.7;
     font-size:16px;
+}
+#image{
+    max-width:100%;
+    margin-top:25px;
+    border-radius:8px;
+    display:none;
 }
 .loader{
     display:none;
     margin-top:10px;
+    font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-    <h2>URL Extractor</h2>
-    <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje">
-    <button onclick="loadData()">Učitaj sadržaj</button>
+    <h2>Smart URL Extractor</h2>
+    <input type="text" id="urlInput" placeholder="Zalijepi URL">
+    <button onclick="loadData()">Učitaj</button>
 
     <div class="loader" id="loader">Učitavanje...</div>
 
     <div id="result">
         <div id="title"></div>
-        <img id="image" />
         <div id="content"></div>
+        <img id="image">
     </div>
 </div>
 
 <script>
 async function loadData(){
     const url = document.getElementById('urlInput').value.trim();
-    if(!url){
-        alert("Unesi URL");
-        return;
-    }
+    if(!url) return alert("Unesi URL");
 
     document.getElementById('loader').style.display = 'block';
 
-    // Proxy za CORS
     const proxy = "https://api.allorigins.win/raw?url=";
 
     try{
@@ -85,38 +81,59 @@ async function loadData(){
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
 
-        /* ---- OG TITLE ---- */
-        let ogTitle = doc.querySelector('meta[property="og:title"]')?.content || 
-                      doc.querySelector('title')?.innerText || "";
+        /* ---------- OG DATA ---------- */
+        const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || "";
+        const ogImage = doc.querySelector('meta[property="og:image"]')?.content || "";
+
         document.getElementById('title').innerText = ogTitle;
 
-        /* ---- OG IMAGE ---- */
-        let ogImage = doc.querySelector('meta[property="og:image"]')?.content || "";
-        if(ogImage){
-            document.getElementById('image').src = ogImage;
-            document.getElementById('image').style.display = 'block';
-        }else{
-            document.getElementById('image').style.display = 'none';
-        }
-
-        /* ---- TEXT CONTENT ---- */
+        /* ---------- CONTENT SELECT ---------- */
         let contentEl = 
             doc.querySelector('.post-body') ||
             doc.querySelector('.entry-content') ||
             doc.querySelector('.float-container');
 
-        let text = "";
-        if(contentEl){
-            text = contentEl.innerText.trim();
-        }else{
-            text = "Nije pronađen post-body / entry-content / float-container";
+        if(!contentEl){
+            document.getElementById('content').innerText = "Sadržaj nije pronađen.";
+            return;
         }
 
-        document.getElementById('content').innerText = text;
+        /* ---------- AUTO CLEAN ---------- */
+        const clone = contentEl.cloneNode(true);
+
+        clone.querySelectorAll(
+            "script, style, iframe, noscript, svg, ins, ads, .ads, .advert, .advertisement"
+        ).forEach(el => el.remove());
+
+        clone.querySelectorAll("*").forEach(el=>{
+            el.removeAttribute("style");
+            el.removeAttribute("class");
+            el.removeAttribute("id");
+            if(el.tagName === "A"){
+                const span = document.createElement("span");
+                span.innerText = el.innerText;
+                el.replaceWith(span);
+            }
+        });
+
+        let cleanText = clone.innerText
+            .replace(/\n{3,}/g,"\n\n")
+            .trim();
+
+        document.getElementById('content').innerText = cleanText;
+
+        /* ---------- IMAGE AT END ---------- */
+        const imgEl = document.getElementById('image');
+        if(ogImage){
+            imgEl.src = ogImage;
+            imgEl.style.display = 'block';
+        }else{
+            imgEl.style.display = 'none';
+        }
 
     }catch(e){
-        alert("Greška pri učitavanju URL-a");
         console.error(e);
+        alert("Greška pri učitavanju.");
     }
 
     document.getElementById('loader').style.display = 'none';
