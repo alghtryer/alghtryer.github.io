@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Content Extractor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    padding:20px;
+}
+.container{
+    max-width:900px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+input, button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    font-size:16px;
+}
+button{
+    cursor:pointer;
+}
+#title{
+    font-size:28px;
+    font-weight:bold;
+    margin:20px 0;
+}
+#image{
+    max-width:100%;
+    margin:15px 0;
+    border-radius:6px;
+}
+#content{
+    white-space:pre-wrap;
+    line-height:1.6;
+    font-size:16px;
+}
+.loader{
+    display:none;
+    margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h2>URL Extractor</h2>
+    <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje">
+    <button onclick="loadData()">Učitaj sadržaj</button>
+
+    <div class="loader" id="loader">Učitavanje...</div>
+
+    <div id="result">
+        <div id="title"></div>
+        <img id="image" />
+        <div id="content"></div>
+    </div>
+</div>
+
+<script>
+async function loadData(){
+    const url = document.getElementById('urlInput').value.trim();
+    if(!url){
+        alert("Unesi URL");
+        return;
+    }
+
+    document.getElementById('loader').style.display = 'block';
+
+    // Proxy za CORS
+    const proxy = "https://api.allorigins.win/raw?url=";
+
+    try{
+        const res = await fetch(proxy + encodeURIComponent(url));
+        const html = await res.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        /* ---- OG TITLE ---- */
+        let ogTitle = doc.querySelector('meta[property="og:title"]')?.content || 
+                      doc.querySelector('title')?.innerText || "";
+        document.getElementById('title').innerText = ogTitle;
+
+        /* ---- OG IMAGE ---- */
+        let ogImage = doc.querySelector('meta[property="og:image"]')?.content || "";
+        if(ogImage){
+            document.getElementById('image').src = ogImage;
+            document.getElementById('image').style.display = 'block';
+        }else{
+            document.getElementById('image').style.display = 'none';
+        }
+
+        /* ---- TEXT CONTENT ---- */
+        let contentEl = 
+            doc.querySelector('.post-body') ||
+            doc.querySelector('.entry-content') ||
+            doc.querySelector('.float-container');
+
+        let text = "";
+        if(contentEl){
+            text = contentEl.innerText.trim();
+        }else{
+            text = "Nije pronađen post-body / entry-content / float-container";
+        }
+
+        document.getElementById('content').innerText = text;
+
+    }catch(e){
+        alert("Greška pri učitavanju URL-a");
+        console.error(e);
+    }
+
+    document.getElementById('loader').style.display = 'none';
+}
+</script>
+</body>
+</html>
