@@ -55,31 +55,18 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    let clone = contentDiv.cloneNode(true);
-
-    // STOP na <div class="nastavak"></div>  -> uzima se samo SVE PRIJE tog diva
-    const stopEl = clone.querySelector('.nastavak');
-    if(stopEl){
-      // ukloni sve elemente poslije njega u parent kontejneru
-      let parent = stopEl.parentNode;
-      let found = false;
-      Array.from(parent.childNodes).forEach(node=>{
-        if(found) node.remove();
-        if(node === stopEl) found = true;
-      });
-      // ukloni i sam nastavak div
-      stopEl.remove();
+    // napravi novi fragment koji će sadržavati samo čvorove do <div class="nastavak">
+    const fragment = document.createDocumentFragment();
+    for(const node of contentDiv.childNodes){
+      if(node.nodeType===1 && node.classList.contains('nastavak')) break;
+      fragment.appendChild(node.cloneNode(true));
     }
 
-    // uklanjanje skripti/oglasa
-    clone.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+    // uklanjanje skripti/oglasa iz fragmenta
+    fragment.querySelectorAll?.('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
 
-    finalHTML = clone.innerHTML;
-
-    // ukloni banner tekst
-    finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
-
-    // random završna poruka
+    // generiraj HTML i dodaj random završnu poruku
+    finalHTML = Array.from(fragment.childNodes).map(n=>n.outerHTML || n.textContent).join('');
     const endMsg = endings[Math.floor(Math.random()*endings.length)];
     finalHTML += `<p><strong>${endMsg}</strong></p>`;
 
