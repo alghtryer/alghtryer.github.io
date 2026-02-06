@@ -12,12 +12,14 @@ button{cursor:pointer;font-weight:bold}
 #ogImage{max-width:100%;margin-top:10px;border-radius:8px}
 textarea{width:100%;min-height:250px;margin-top:10px;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
 .label{font-weight:bold;margin-top:15px;display:block}
+.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;white-space:normal;line-height:1.6}
 </style>
 </head>
 <body>
 <div class="card">
 <h2>URL Extractor (Text + OG Title + OG Image)</h2>
 <input id="urlInput" placeholder="Zalijepi URL...">
+<input id="stopClass" placeholder="Klasa diva do kojeg se uzima tekst (npr: nastavak)">
 <button onclick="loadData()">Učitaj sadržaj</button>
 <div id="result"></div>
 </div>
@@ -25,7 +27,9 @@ textarea{width:100%;min-height:250px;margin-top:10px;padding:10px;border-radius:
 <script>
 async function loadData(){
   const url=document.getElementById('urlInput').value.trim();
+  const stopClass=document.getElementById('stopClass').value.trim();
   if(!url) return alert('Unesi URL');
+
   const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
   const res=await fetch(proxy);
   const html=await res.text();
@@ -36,17 +40,40 @@ async function loadData(){
   const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
   const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
 
-  // TEXT EXTRACTION
-  // Prioritet: .post-body.entry-content.float-container
-  let contentDiv = doc.querySelector('.post-body.entry-content.float-container');
-  if(!contentDiv) contentDiv = doc.querySelector('.entry-content');
-  if(!contentDiv) contentDiv = doc.querySelector('article');
+  // CONTENT ROOT
+  let contentDiv = doc.querySelector('.post-body.entry-content.float-container')
+    || doc.querySelector('.entry-content')
+    || doc.querySelector('article');
 
-  let text = '';
+  let finalHTML = '';
+
   if(contentDiv){
-    text = contentDiv.innerText.trim();
+    let clone = contentDiv.cloneNode(true);
+
+    // STOP DIV
+    if(stopClass){
+      const stopEl = clone.querySelector('.'+stopClass);
+      if(stopEl){
+        // ukloni sve poslije tog diva
+        let node = stopEl.nextSibling;
+        while(node){
+          let next = node.nextSibling;
+          node.remove();
+          node = next;
+        }
+        stopEl.remove();
+      }
+    }
+
+    // uklanjanje oglasa / separatora
+    clone.querySelectorAll('script, style, iframe').forEach(e=>e.remove());
+
+    finalHTML = clone.innerHTML;
+
+    // ukloni banner tekst
+    finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
   } else {
-    text = 'Nije pronađen content div.';
+    finalHTML = '<i>Nije pronađen content div.</i>';
   }
 
   document.getElementById('result').innerHTML = `
@@ -56,8 +83,11 @@ async function loadData(){
     <span class='label'>OG Slika:</span>
     ${ogImage?`<img id='ogImage' src='${ogImage}'>`:'Nema OG slike'}
 
-    <span class='label'>Tekst iz posta:</span>
-    <textarea>${text}</textarea>
+    <span class='label'>Preview (formatirano kao na webu):</span>
+    <div class='preview'>${finalHTML}</div>
+
+    <span class='label'>HTML tekst:</span>
+    <textarea>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
   `;
 }
 </script>
