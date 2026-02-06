@@ -55,26 +55,35 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    let clone = contentDiv.cloneNode(true);
-
-    // uzmi samo do <div class="nastavak"></div>
-    const stopEl = clone.querySelector('.nastavak');
-    if(stopEl){
-      // ukloni sve elemente POSLIJE stopEl u clone
-      let nodes = Array.from(clone.childNodes);
-      let newNodes = [];
-      for(let n of nodes){
-        if(n === stopEl) break;
-        newNodes.push(n);
+    function getContentUpToStop(root){
+      const fragment = document.createDocumentFragment();
+      for(const node of root.childNodes){
+        if(node.nodeType===1 && node.classList.contains('nastavak')) break;
+        if(node.nodeType===1){
+          const stopInside = node.querySelector('.nastavak');
+          if(stopInside){
+            const cloned = node.cloneNode(true);
+            stopInside.remove();
+            fragment.appendChild(cloned);
+            break;
+          } else {
+            fragment.appendChild(node.cloneNode(true));
+          }
+        } else {
+          fragment.appendChild(node.cloneNode(true));
+        }
       }
-      clone.innerHTML = '';
-      newNodes.forEach(n=>clone.appendChild(n));
+      return fragment;
     }
 
-    // uklanjanje skripti/oglasa
-    clone.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+    let fragment = getContentUpToStop(contentDiv);
+    const container = document.createElement('div');
+    container.appendChild(fragment);
 
-    finalHTML = clone.innerHTML;
+    // uklanjanje skripti/oglasa
+    container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+
+    finalHTML = container.innerHTML;
 
     // ukloni banner tekst
     finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
