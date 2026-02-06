@@ -55,18 +55,31 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    // napravi novi fragment koji će sadržavati samo čvorove do <div class="nastavak">
-    const fragment = document.createDocumentFragment();
-    for(const node of contentDiv.childNodes){
-      if(node.nodeType===1 && node.classList.contains('nastavak')) break;
-      fragment.appendChild(node.cloneNode(true));
+    let clone = contentDiv.cloneNode(true);
+
+    // uzmi samo do <div class="nastavak"></div>
+    const stopEl = clone.querySelector('.nastavak');
+    if(stopEl){
+      // ukloni sve elemente POSLIJE stopEl u clone
+      let nodes = Array.from(clone.childNodes);
+      let newNodes = [];
+      for(let n of nodes){
+        if(n === stopEl) break;
+        newNodes.push(n);
+      }
+      clone.innerHTML = '';
+      newNodes.forEach(n=>clone.appendChild(n));
     }
 
-    // uklanjanje skripti/oglasa iz fragmenta
-    fragment.querySelectorAll?.('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+    // uklanjanje skripti/oglasa
+    clone.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
 
-    // generiraj HTML i dodaj random završnu poruku
-    finalHTML = Array.from(fragment.childNodes).map(n=>n.outerHTML || n.textContent).join('');
+    finalHTML = clone.innerHTML;
+
+    // ukloni banner tekst
+    finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
+
+    // random završna poruka
     const endMsg = endings[Math.floor(Math.random()*endings.length)];
     finalHTML += `<p><strong>${endMsg}</strong></p>`;
 
