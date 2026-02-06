@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Smart URL Extractor</title>
+<title>Smart URL Extractor PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -32,10 +32,12 @@ button{cursor:pointer;}
     margin-bottom:15px;
 }
 #content{
-    white-space:pre-wrap;
     line-height:1.7;
     font-size:16px;
 }
+#content p{margin-bottom:12px;}
+#content h1,#content h2,#content h3{margin:16px 0 10px;}
+#content ul{margin-left:20px; margin-bottom:12px;}
 #image{
     max-width:100%;
     margin-top:25px;
@@ -52,7 +54,7 @@ button{cursor:pointer;}
 
 <body>
 <div class="container">
-    <h2>Smart URL Extractor</h2>
+    <h2>Smart URL Extractor PRO</h2>
     <input type="text" id="urlInput" placeholder="Zalijepi URL">
     <button onclick="loadData()">Učitaj</button>
 
@@ -105,22 +107,28 @@ async function loadData(){
             "script, style, iframe, noscript, svg, ins, ads, .ads, .advert, .advertisement"
         ).forEach(el => el.remove());
 
+        /* uklanjanje separator teksta */
+        clone.querySelectorAll("*").forEach(el=>{
+            if(el.innerText){
+                el.innerText = el.innerText.replace(/-+\s*Tekst se nastavlja ispod oglasa\s*-+/gi,"");
+            }
+        });
+
+        /* čišćenje atributa + linkova */
         clone.querySelectorAll("*").forEach(el=>{
             el.removeAttribute("style");
             el.removeAttribute("class");
             el.removeAttribute("id");
+
             if(el.tagName === "A"){
                 const span = document.createElement("span");
-                span.innerText = el.innerText;
+                span.innerHTML = el.innerHTML;
                 el.replaceWith(span);
             }
         });
 
-        let cleanText = clone.innerText
-            .replace(/\n{3,}/g,"\n\n")
-            .trim();
-
-        document.getElementById('content').innerText = cleanText;
+        /* zadržavamo HTML strukturu */
+        document.getElementById('content').innerHTML = clone.innerHTML;
 
         /* ---------- IMAGE AT END ---------- */
         const imgEl = document.getElementById('image');
