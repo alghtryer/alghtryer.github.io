@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Text & OG Extractor</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
+.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+input,button{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
+button{cursor:pointer;font-weight:bold}
+#result{margin-top:20px}
+#ogImage{max-width:100%;margin-top:10px;border-radius:8px}
+textarea{width:100%;min-height:250px;margin-top:10px;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+.label{font-weight:bold;margin-top:15px;display:block}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>URL Extractor (Text + OG Title + OG Image)</h2>
+<input id="urlInput" placeholder="Zalijepi URL...">
+<button onclick="loadData()">Učitaj sadržaj</button>
+<div id="result"></div>
+</div>
+
+<script>
+async function loadData(){
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url) return alert('Unesi URL');
+  const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  const res=await fetch(proxy);
+  const html=await res.text();
+  const parser=new DOMParser();
+  const doc=parser.parseFromString(html,'text/html');
+
+  // OG DATA
+  const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
+  const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
+
+  // TEXT EXTRACTION
+  // Prioritet: .post-body.entry-content.float-container
+  let contentDiv = doc.querySelector('.post-body.entry-content.float-container');
+  if(!contentDiv) contentDiv = doc.querySelector('.entry-content');
+  if(!contentDiv) contentDiv = doc.querySelector('article');
+
+  let text = '';
+  if(contentDiv){
+    text = contentDiv.innerText.trim();
+  } else {
+    text = 'Nije pronađen content div.';
+  }
+
+  document.getElementById('result').innerHTML = `
+    <span class='label'>OG Naslov:</span>
+    <input value="${ogTitle.replace(/"/g,'&quot;')}">
+
+    <span class='label'>OG Slika:</span>
+    ${ogImage?`<img id='ogImage' src='${ogImage}'>`:'Nema OG slike'}
+
+    <span class='label'>Tekst iz posta:</span>
+    <textarea>${text}</textarea>
+  `;
+}
+</script>
+</body>
+</html>
