@@ -53,22 +53,14 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    // funkcija koja uzima sve do prvog <div class="nastavak"></div>
-    function takeUntilStop(node){
-      if(node.nodeType===1 && node.classList.contains('nastavak')) return null;
-      const clone = node.cloneNode(false);
-      node.childNodes.forEach(child=>{
-        const childClone = takeUntilStop(child);
-        if(childClone) clone.appendChild(childClone);
-      });
-      return clone;
+    const fragment = document.createDocumentFragment();
+    for(const node of contentDiv.childNodes){
+      if(node.nodeType === 8 && node.nodeValue.includes('STOP TEXT HERE')) break; // komentar marker
+      fragment.appendChild(node.cloneNode(true));
     }
 
     const container = document.createElement('div');
-    contentDiv.childNodes.forEach(node=>{
-      const clone = takeUntilStop(node);
-      if(clone) container.appendChild(clone);
-    });
+    container.appendChild(fragment);
 
     // uklanjanje skripti/oglasa
     container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
