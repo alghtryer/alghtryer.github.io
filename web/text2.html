@@ -43,11 +43,9 @@ async function loadData(){
   const parser=new DOMParser();
   const doc=parser.parseFromString(html,'text/html');
 
-  // OG DATA
   const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
   const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
 
-  // CONTENT ROOT
   let contentDiv = doc.querySelector('.post-body.entry-content.float-container')
     || doc.querySelector('.entry-content')
     || doc.querySelector('article');
@@ -55,40 +53,29 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    function getContentUpToStop(root){
-      const fragment = document.createDocumentFragment();
-      for(const node of root.childNodes){
-        if(node.nodeType===1 && node.classList.contains('nastavak')) break;
-        if(node.nodeType===1){
-          const stopInside = node.querySelector('.nastavak');
-          if(stopInside){
-            const cloned = node.cloneNode(true);
-            stopInside.remove();
-            fragment.appendChild(cloned);
-            break;
-          } else {
-            fragment.appendChild(node.cloneNode(true));
-          }
-        } else {
-          fragment.appendChild(node.cloneNode(true));
-        }
-      }
-      return fragment;
+    // funkcija koja uzima sve do prvog <div class="nastavak"></div>
+    function takeUntilStop(node){
+      if(node.nodeType===1 && node.classList.contains('nastavak')) return null;
+      const clone = node.cloneNode(false);
+      node.childNodes.forEach(child=>{
+        const childClone = takeUntilStop(child);
+        if(childClone) clone.appendChild(childClone);
+      });
+      return clone;
     }
 
-    let fragment = getContentUpToStop(contentDiv);
     const container = document.createElement('div');
-    container.appendChild(fragment);
+    contentDiv.childNodes.forEach(node=>{
+      const clone = takeUntilStop(node);
+      if(clone) container.appendChild(clone);
+    });
 
     // uklanjanje skripti/oglasa
     container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
 
     finalHTML = container.innerHTML;
-
-    // ukloni banner tekst
     finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
 
-    // random završna poruka
     const endMsg = endings[Math.floor(Math.random()*endings.length)];
     finalHTML += `<p><strong>${endMsg}</strong></p>`;
 
