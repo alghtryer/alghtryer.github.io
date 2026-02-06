@@ -53,14 +53,21 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    const fragment = document.createDocumentFragment();
-    for(const node of contentDiv.childNodes){
-      if(node.nodeType === 8 && node.nodeValue.includes('STOP TEXT HERE')) break; // komentar marker
-      fragment.appendChild(node.cloneNode(true));
+    function takeUntilComment(node){
+      if(node.nodeType === 8 && node.nodeValue.includes('STOP TEXT HERE')) return null; // komentar marker
+      const clone = node.cloneNode(false);
+      node.childNodes.forEach(child => {
+        const childClone = takeUntilComment(child);
+        if(childClone) clone.appendChild(childClone);
+      });
+      return clone;
     }
 
     const container = document.createElement('div');
-    container.appendChild(fragment);
+    contentDiv.childNodes.forEach(node => {
+      const clone = takeUntilComment(node);
+      if(clone) container.appendChild(clone);
+    });
 
     // uklanjanje skripti/oglasa
     container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
