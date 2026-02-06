@@ -57,15 +57,17 @@ async function loadData(){
   if(contentDiv){
     let clone = contentDiv.cloneNode(true);
 
-    // STOP na div class="nastavak"
+    // STOP na <div class="nastavak"></div>  -> uzima se samo SVE PRIJE tog diva
     const stopEl = clone.querySelector('.nastavak');
     if(stopEl){
-      let node = stopEl.nextSibling;
-      while(node){
-        let next = node.nextSibling;
-        node.remove();
-        node = next;
-      }
+      // ukloni sve elemente poslije njega u parent kontejneru
+      let parent = stopEl.parentNode;
+      let found = false;
+      Array.from(parent.childNodes).forEach(node=>{
+        if(found) node.remove();
+        if(node === stopEl) found = true;
+      });
+      // ukloni i sam nastavak div
       stopEl.remove();
     }
 
