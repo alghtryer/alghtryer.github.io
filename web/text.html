@@ -110,7 +110,7 @@ async function loadData(){
         /* uklanjanje separator teksta */
         clone.querySelectorAll("*").forEach(el=>{
             if(el.innerText){
-                el.innerText = el.innerText.replace(/-+\s*Tekst se nastavlja ispod oglasa\s*-+/gi,"");
+                el.innerText = el.innerText.replace(/- - -+\s*Tekst se nastavlja ispod oglasa\s*- - -+/gi,"");
             }
         });
 
