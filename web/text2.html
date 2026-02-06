@@ -53,21 +53,29 @@ async function loadData(){
   let finalHTML = '';
 
   if(contentDiv){
-    function takeUntilComment(node){
-      if(node.nodeType === 8 && node.nodeValue.includes('STOP TEXT HERE')) return null; // komentar marker
-      const clone = node.cloneNode(false);
-      node.childNodes.forEach(child => {
-        const childClone = takeUntilComment(child);
-        if(childClone) clone.appendChild(childClone);
-      });
-      return clone;
+    function takeUntilStop(node){
+      const fragment = document.createDocumentFragment();
+      let stop = false;
+
+      function recurse(current, parentFragment){
+        if(stop) return;
+        if(current.nodeType === 8 && current.nodeValue.includes('STOP TEXT HERE')){
+          stop = true;
+          return;
+        }
+        const clone = current.cloneNode(false);
+        parentFragment.appendChild(clone);
+        current.childNodes.forEach(child => {
+          if(!stop) recurse(child, clone);
+        });
+      }
+
+      node.childNodes.forEach(child => recurse(child, fragment));
+      return fragment;
     }
 
     const container = document.createElement('div');
-    contentDiv.childNodes.forEach(node => {
-      const clone = takeUntilComment(node);
-      if(clone) container.appendChild(clone);
-    });
+    container.appendChild(takeUntilStop(contentDiv));
 
     // uklanjanje skripti/oglasa
     container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
