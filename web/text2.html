@@ -2,126 +2,152 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Text & OG Extractor</title>
+<title>PNG to JPG Converter + Compression + Logo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
-.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-input,button{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
-button{cursor:pointer;font-weight:bold}
-#result{margin-top:20px}
-#ogImage{max-width:100%;margin-top:10px;border-radius:8px}
-textarea{width:100%;min-height:250px;margin-top:10px;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
-.label{font-weight:bold;margin-top:15px;display:block}
-.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;white-space:normal;line-height:1.6}
-.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    padding:20px;
+}
+.container{
+    max-width:800px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+h1{
+    text-align:center;
+}
+input, select, button{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+}
+.preview{
+    text-align:center;
+    margin-top:15px;
+}
+img{
+    max-width:100%;
+}
 </style>
 </head>
 <body>
-<div class="card">
-<h2>URL Extractor (Text + OG Title + OG Image)</h2>
-<input id="urlInput" placeholder="Zalijepi URL...">
-<button onclick="loadData()">Učitaj sadržaj</button>
-<div id="result"></div>
+<div class="container">
+<h1>PNG → JPG Converter + Compression + Logo</h1>
+
+<label>Upload image (PNG/JPG):</label>
+<input type="file" id="imageInput" accept="image/png,image/jpeg">
+
+<label>JPG Quality (compression):</label>
+<input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.7">
+<span id="qualityVal">0.7</span>
+
+<label>Logo size (% of width):</label>
+<input type="range" id="logoSize" min="5" max="40" step="1" value="15">
+<span id="logoSizeVal">15%</span>
+
+<select id="position">
+<option value="br">Bottom Right</option>
+<option value="bl">Bottom Left</option>
+<option value="tr">Top Right</option>
+<option value="tl">Top Left</option>
+</select>
+
+<label><input type="checkbox" id="enableLogo" checked> Add logo</label>
+
+<button id="convertBtn">Convert & Download JPG</button>
+
+<div class="preview">
+<canvas id="canvas"></canvas>
+</div>
 </div>
 
 <script>
-const endings = [
-  "NASTAVAK PRIČE U KOMENTARU 👇👇👇",
-  "ČITAJ dalje u komentaru  👇👇👇",
-  "OSTATAK PRICE PROCITAJTE NA LINKU U KOMENTARU ⬇️⬇️⬇️",
-  "NASTAVAK U KOMENTARU  👇👇👇",
-  "ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
-];
+const logoURL = "https://api.codetabs.com/v1/proxy/?quest=https://blogger.googleusercontent.com/img/a/AVvXsEiHPHXzpk-hGGVFGTrVmCatN3Rd4Iv8xXTt5KGo6hLL2FvFVbM8la4JWsnVlZ7q66NIOAVuB-ZYKt_4--95VtAUVjgKFjWOWr8Ats6U08jLIQKUmyRA9K6EES6ZWH2vxcvM2DL5iAmhCiH2UhGO_ScIkX3M3GLgJH-ddQ214FyddGabOYC_wfdDaLjTXA";
 
-async function loadData(){
-  const url=document.getElementById('urlInput').value.trim();
-  if(!url) return alert('Unesi URL');
+const input = document.getElementById('imageInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const convertBtn = document.getElementById('convertBtn');
+const qualityInput = document.getElementById('quality');
+const qualityVal = document.getElementById('qualityVal');
+const logoSizeInput = document.getElementById('logoSize');
+const logoSizeVal = document.getElementById('logoSizeVal');
+const positionSelect = document.getElementById('position');
+const enableLogo = document.getElementById('enableLogo');
 
-  const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  const res=await fetch(proxy);
-  const html=await res.text();
-  const parser=new DOMParser();
-  const doc=parser.parseFromString(html,'text/html');
+qualityInput.oninput = () => qualityVal.innerText = qualityInput.value;
+logoSizeInput.oninput = () => logoSizeVal.innerText = logoSizeInput.value + "%";
 
-  const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
-  const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
+let mainImage = new Image();
+let logoImage = new Image();
+logoImage.crossOrigin = "anonymous";
+logoImage.src = logoURL;
 
-  let contentDiv = doc.querySelector('.post-body.entry-content.float-container')
-    || doc.querySelector('.entry-content')
-    || doc.querySelector('article');
-
-  let finalHTML = '';
-
-  if(contentDiv){
-    function takeUntilStop(node){
-      const fragment = document.createDocumentFragment();
-      let stop = false;
-
-      function recurse(current, parentFragment){
-        if(stop) return;
-        if(current.nodeType === 8 && current.nodeValue.includes('STOP TEXT HERE')){
-          stop = true;
-          return;
+input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        mainImage.onload = () => {
+            canvas.width = mainImage.width;
+            canvas.height = mainImage.height;
+            renderPreview();
         }
-        const clone = current.cloneNode(false);
-        parentFragment.appendChild(clone);
-        current.childNodes.forEach(child => {
-          if(!stop) recurse(child, clone);
-        });
-      }
-
-      node.childNodes.forEach(child => recurse(child, fragment));
-      return fragment;
+        mainImage.src = ev.target.result;
     }
+    reader.readAsDataURL(file);
+});
 
-    const container = document.createElement('div');
-    container.appendChild(takeUntilStop(contentDiv));
+function drawLogo(){
+    if(!enableLogo.checked) return;
+    if(!logoImage.complete) return;
 
-    // uklanjanje skripti/oglasa
-    container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+    const logoWidth = canvas.width * (logoSizeInput.value/100);
+    const ratio = logoImage.height / logoImage.width;
+    const logoHeight = logoWidth * ratio;
 
-    finalHTML = container.innerHTML;
-    finalHTML = finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
+    let x=0, y=0;
+    const pos = positionSelect.value;
 
-    const endMsg = endings[Math.floor(Math.random()*endings.length)];
-    finalHTML += `<p><strong>${endMsg}</strong></p>`;
+    if(pos==='br'){ x = canvas.width - logoWidth - 20; y = canvas.height - logoHeight - 20; }
+    if(pos==='bl'){ x = 20; y = canvas.height - logoHeight - 20; }
+    if(pos==='tr'){ x = canvas.width - logoWidth - 20; y = 20; }
+    if(pos==='tl'){ x = 20; y = 20; }
 
-  } else {
-    finalHTML = '<i>Nije pronađen content div.</i>';
-  }
-
-  document.getElementById('result').innerHTML = `
-    <span class='label'>OG Naslov:</span>
-    <input id='ogTitleField' value="${ogTitle.replace(/"/g,'&quot;')}">
-    <button class='copyBtn' onclick="copyText('ogTitleField')">Copy naslov</button>
-
-    <span class='label'>OG Slika:</span>
-    ${ogImage?`<img id='ogImage' src='${ogImage}'>`:'Nema OG slike'}
-    ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
-
-    <span class='label'>Preview (formatirano kao na webu):</span>
-    <div class='preview' id='previewBox'>${finalHTML}</div>
-    <button class='copyBtn' onclick="copyHTML()">Copy tekst (HTML)</button>
-
-    <span class='label'>HTML tekst:</span>
-    <textarea id='htmlBox'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-    <button class='copyBtn' onclick="copyText('htmlBox')">Copy raw HTML</button>
-  `;
+    ctx.drawImage(logoImage, x, y, logoWidth, logoHeight);
 }
 
-function copyText(id){
-  const el=document.getElementById(id);
-  el.select();
-  document.execCommand('copy');
+function renderPreview(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(mainImage,0,0);
+    drawLogo();
 }
 
-function copyHTML(){
-  const html = document.getElementById('previewBox').innerText;
-  navigator.clipboard.writeText(html);
-}
+[qualityInput, logoSizeInput, positionSelect, enableLogo].forEach(el=>{
+    el.addEventListener('input', ()=>{
+        if(mainImage.src) renderPreview();
+    });
+});
 
-function copyRaw(text){
-  navigator.clipboard.writeText(text);
+convertBtn.onclick = () => {
+    if(!mainImage.src) return alert("Upload image first");
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(mainImage,0,0);
+    drawLogo();
+
+    const quality = parseFloat(qualityInput.value);
+    const jpgData = canvas.toDataURL('image/jpeg', quality);
+
+    const link = document.createElement('a');
+    link.href = jpgData;
+    link.download = 'converted.jpg';
+    link.click();
 }
 </script>
 </body>
