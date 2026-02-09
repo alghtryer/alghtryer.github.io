@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PNG to JPG Converter + Compression + Logo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    padding:20px;
+}
+.container{
+    max-width:800px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+h1{
+    text-align:center;
+}
+input, select, button{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+}
+.preview{
+    text-align:center;
+    margin-top:15px;
+}
+img{
+    max-width:100%;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>PNG → JPG Converter + Compression + Logo</h1>
+
+<label>Upload image (PNG/JPG):</label>
+<input type="file" id="imageInput" accept="image/png,image/jpeg">
+
+<label>JPG Quality (compression):</label>
+<input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.7">
+<span id="qualityVal">0.7</span>
+
+<label>Logo size (% of width):</label>
+<input type="range" id="logoSize" min="5" max="40" step="1" value="15">
+<span id="logoSizeVal">15%</span>
+
+<select id="position">
+<option value="br">Bottom Right</option>
+<option value="bl">Bottom Left</option>
+<option value="tr">Top Right</option>
+<option value="tl">Top Left</option>
+</select>
+
+<button id="convertBtn">Convert & Download JPG</button>
+
+<div class="preview">
+<canvas id="canvas"></canvas>
+</div>
+</div>
+
+<script>
+const logoURL = "https://api.codetabs.com/v1/proxy/?quest=https://blogger.googleusercontent.com/img/a/AVvXsEiHPHXzpk-hGGVFGTrVmCatN3Rd4Iv8xXTt5KGo6hLL2FvFVbM8la4JWsnVlZ7q66NIOAVuB-ZYKt_4--95VtAUVjgKFjWOWr8Ats6U08jLIQKUmyRA9K6EES6ZWH2vxcvM2DL5iAmhCiH2UhGO_ScIkX3M3GLgJH-ddQ214FyddGabOYC_wfdDaLjTXA";
+
+const input = document.getElementById('imageInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const convertBtn = document.getElementById('convertBtn');
+const qualityInput = document.getElementById('quality');
+const qualityVal = document.getElementById('qualityVal');
+const logoSizeInput = document.getElementById('logoSize');
+const logoSizeVal = document.getElementById('logoSizeVal');
+const positionSelect = document.getElementById('position');
+
+qualityInput.oninput = () => qualityVal.innerText = qualityInput.value;
+logoSizeInput.oninput = () => logoSizeVal.innerText = logoSizeInput.value + "%";
+
+let mainImage = new Image();
+let logoImage = new Image();
+logoImage.crossOrigin = "anonymous";
+logoImage.src = logoURL;
+
+input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        mainImage.onload = () => {
+            canvas.width = mainImage.width;
+            canvas.height = mainImage.height;
+            ctx.drawImage(mainImage,0,0);
+            drawLogo();
+        }
+        mainImage.src = ev.target.result;
+    }
+    reader.readAsDataURL(file);
+});
+
+function drawLogo(){
+    if(!logoImage.complete) return;
+
+    const logoWidth = canvas.width * (logoSizeInput.value/100);
+    const ratio = logoImage.height / logoImage.width;
+    const logoHeight = logoWidth * ratio;
+
+    let x=0, y=0;
+    const pos = positionSelect.value;
+
+    if(pos==='br'){ x = canvas.width - logoWidth - 20; y = canvas.height - logoHeight - 20; }
+    if(pos==='bl'){ x = 20; y = canvas.height - logoHeight - 20; }
+    if(pos==='tr'){ x = canvas.width - logoWidth - 20; y = 20; }
+    if(pos==='tl'){ x = 20; y = 20; }
+
+    ctx.drawImage(logoImage, x, y, logoWidth, logoHeight);
+}
+
+convertBtn.onclick = () => {
+    if(!mainImage.src) return alert("Upload image first");
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(mainImage,0,0);
+    drawLogo();
+
+    const quality = parseFloat(qualityInput.value);
+    const jpgData = canvas.toDataURL('image/jpeg', quality);
+
+    const link = document.createElement('a');
+    link.href = jpgData;
+    link.download = 'converted.jpg';
+    link.click();
+}
+</script>
+</body>
+</html>
