@@ -57,6 +57,8 @@ img{
 <option value="tl">Top Left</option>
 </select>
 
+<label><input type="checkbox" id="enableLogo" checked> Add logo</label>
+
 <button id="convertBtn">Convert & Download JPG</button>
 
 <div class="preview">
@@ -76,6 +78,7 @@ const qualityVal = document.getElementById('qualityVal');
 const logoSizeInput = document.getElementById('logoSize');
 const logoSizeVal = document.getElementById('logoSizeVal');
 const positionSelect = document.getElementById('position');
+const enableLogo = document.getElementById('enableLogo');
 
 qualityInput.oninput = () => qualityVal.innerText = qualityInput.value;
 logoSizeInput.oninput = () => logoSizeVal.innerText = logoSizeInput.value + "%";
@@ -93,8 +96,7 @@ input.addEventListener('change', e => {
         mainImage.onload = () => {
             canvas.width = mainImage.width;
             canvas.height = mainImage.height;
-            ctx.drawImage(mainImage,0,0);
-            drawLogo();
+            renderPreview();
         }
         mainImage.src = ev.target.result;
     }
@@ -102,6 +104,7 @@ input.addEventListener('change', e => {
 });
 
 function drawLogo(){
+    if(!enableLogo.checked) return;
     if(!logoImage.complete) return;
 
     const logoWidth = canvas.width * (logoSizeInput.value/100);
@@ -118,6 +121,18 @@ function drawLogo(){
 
     ctx.drawImage(logoImage, x, y, logoWidth, logoHeight);
 }
+
+function renderPreview(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(mainImage,0,0);
+    drawLogo();
+}
+
+[qualityInput, logoSizeInput, positionSelect, enableLogo].forEach(el=>{
+    el.addEventListener('input', ()=>{
+        if(mainImage.src) renderPreview();
+    });
+});
 
 convertBtn.onclick = () => {
     if(!mainImage.src) return alert("Upload image first");
