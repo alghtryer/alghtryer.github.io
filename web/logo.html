@@ -50,6 +50,8 @@ img{
 <input type="range" id="logoSize" min="5" max="40" step="1" value="15">
 <span id="logoSizeVal">15%</span>
 
+<label><input type="checkbox" id="autoResize"> Auto resize to 1200x630</label>
+
 <select id="position">
 <option value="br">Bottom Right</option>
 <option value="bl">Bottom Left</option>
@@ -79,6 +81,7 @@ const logoSizeInput = document.getElementById('logoSize');
 const logoSizeVal = document.getElementById('logoSizeVal');
 const positionSelect = document.getElementById('position');
 const enableLogo = document.getElementById('enableLogo');
+const autoResize = document.getElementById('autoResize');
 
 qualityInput.oninput = () => qualityVal.innerText = qualityInput.value;
 logoSizeInput.oninput = () => logoSizeVal.innerText = logoSizeInput.value + "%";
@@ -124,11 +127,21 @@ function drawLogo(){
 
 function renderPreview(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(mainImage,0,0);
+
+    if(autoResize.checked){
+        canvas.width = 1200;
+        canvas.height = 630;
+        ctx.drawImage(mainImage, 0, 0, 1200, 630);
+    }else{
+        canvas.width = mainImage.width;
+        canvas.height = mainImage.height;
+        ctx.drawImage(mainImage,0,0);
+    }
+
     drawLogo();
 }
 
-[qualityInput, logoSizeInput, positionSelect, enableLogo].forEach(el=>{
+[qualityInput, logoSizeInput, positionSelect, enableLogo, autoResize].forEach(el=>{
     el.addEventListener('input', ()=>{
         if(mainImage.src) renderPreview();
     });
