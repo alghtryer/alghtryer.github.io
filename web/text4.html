@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Text & OG Extractor</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
+.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
+input,button{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
+button{cursor:pointer;font-weight:bold}
+#result{margin-top:20px}
+#ogImage{max-width:100%;margin-top:10px;border-radius:8px}
+textarea{width:100%;min-height:250px;margin-top:10px;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+.label{font-weight:bold;margin-top:15px;display:block}
+.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;white-space:normal;line-height:1.6}
+.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+.modeBox{margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>URL Extractor (Text + OG Title + OG Image)</h2>
+
+<div class="modeBox">
+<label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
+<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
+</div>
+
+<input id="urlInput" placeholder="Zalijepi URL...">
+
+<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
+
+<button onclick="loadData()">Učitaj sadržaj</button>
+
+<div id="result"></div>
+</div>
+
+<script>
+
+const endings = [
+  "NASTAVAK PRIČE U KOMENTARU 👇👇👇",
+  "ČITAJ dalje u komentaru 👇👇👇",
+  "OSTATAK PRICE PROCITAJTE NA LINKU U KOMENTARU ⬇️⬇️⬇️",
+  "NASTAVAK U KOMENTARU 👇👇👇",
+  "ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
+];
+
+document.querySelectorAll('input[name="mode"]').forEach(r=>{
+  r.addEventListener("change", ()=>{
+    document.getElementById('urlInput').style.display =
+      r.value === "manual" ? "block" : "none";
+    document.getElementById('countInput').style.display =
+      r.value === "auto" ? "block" : "none";
+  });
+});
+
+async function loadData(){
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+
+  if(mode === "manual"){
+    const url=document.getElementById('urlInput').value.trim();
+    if(!url) return alert('Unesi URL');
+    document.getElementById('result').innerHTML="";
+    await processSingle(url);
+  }
+
+  if(mode === "auto"){
+    const count = parseInt(document.getElementById('countInput').value);
+    if(!count) return alert("Unesi broj tekstova");
+
+    document.getElementById('result').innerHTML="";
+
+    const homepage = "https://www.zanimljivosti.xyz/";
+    const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(homepage)}`;
+    const res=await fetch(proxy);
+    const html=await res.text();
+
+    const parser=new DOMParser();
+    const doc=parser.parseFromString(html,'text/html');
+
+    let links = [...doc.querySelectorAll('a')]
+      .map(a=>a.href)
+      .filter(href=>href.includes('/202'))
+      .filter((v,i,a)=>a.indexOf(v)===i)
+      .slice(0,count);
+
+    for(let link of links){
+      await processSingle(link,true);
+    }
+  }
+}
+
+async function processSingle(url){
+
+  const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  const res=await fetch(proxy);
+  const html=await res.text();
+
+  const parser=new DOMParser();
+  const doc=parser.parseFromString(html,'text/html');
+
+  const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
+  const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
+
+  let contentDiv = doc.querySelector('.post-body.entry-content.float-container')
+    || doc.querySelector('.entry-content')
+    || doc.querySelector('article');
+
+  let finalHTML = '';
+
+  if(contentDiv){
+    const container = document.createElement('div');
+    container.innerHTML = contentDiv.innerHTML;
+
+    container.querySelectorAll('script, style, iframe, ins, .adsbygoogle').forEach(e=>e.remove());
+
+    finalHTML = container.innerHTML;
+
+    const endMsg = endings[Math.floor(Math.random()*endings.length)];
+    finalHTML += `<p><strong>${endMsg}</strong></p>`;
+  } else {
+    finalHTML = "<i>Nije pronađen tekst</i>";
+  }
+
+  const box = document.createElement("div");
+  box.className="card";
+
+  box.innerHTML = `
+    <span class='label'>URL:</span>
+    <input id='urlField_${Date.now()}' value="${url}">
+    <button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
+
+    <span class='label'>OG Naslov:</span>
+    <input value="${ogTitle.replace(/"/g,'&quot;')}">
+    <button class='copyBtn' onclick="copyRaw('${ogTitle.replace(/"/g,'&quot;')}')">Copy naslov</button>
+
+    <span class='label'>OG Slika:</span>
+    ${ogImage?`<img src='${ogImage}' style="max-width:100%">`:'Nema OG slike'}
+    ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
+
+    <span class='label'>Preview:</span>
+    <div class='preview'>${finalHTML}</div>
+
+    <span class='label'>HTML tekst:</span>
+    <textarea>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+  `;
+
+  document.getElementById('result').appendChild(box);
+}
+
+function copyRaw(text){
+  navigator.clipboard.writeText(text);
+}
+
+</script>
+</body>
+</html>
