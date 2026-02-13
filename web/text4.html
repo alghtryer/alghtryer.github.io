@@ -19,7 +19,7 @@ button{cursor:pointer;font-weight:bold}
 <h2>URL Extractor (Text + OG Title + OG Image)</h2>
 
 <label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
-<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz (FEED)</label>
+<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
 
 <input id="urlInput" placeholder="Zalijepi URL...">
 <input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
@@ -62,73 +62,49 @@ if(mode==="auto"){
 const count=parseInt(countInput.value);
 if(!count) return alert("Unesi broj tekstova");
 
-const feedURL=`https://www.zanimljivosti.xyz/feeds/posts/default?alt=json&max-results=${count}`;
-const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(feedURL)}`;
-
+const homepage="https://www.zanimljivosti.xyz/";
+const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(homepage)}`;
 const res=await fetch(proxy);
-const data=await res.json();
+const html=await res.text();
+const doc=new DOMParser().parseFromString(html,'text/html');
 
-const entries=data.feed.entry;
+let links=[...doc.querySelectorAll('a')]
+.map(a=>a.href)
+.filter(h=>/^https:\/\/www\.zanimljivosti\.xyz\/202\d\/\d{2}\//.test(h))
+.map(normalizeURL)
+.filter(Boolean);
 
-for(let entry of entries){
+// ukloni duplikate
+links=[...new Set(links)];
 
-const title=entry.title.$t;
+links=links.slice(0,count);
 
-const linkObj=entry.link.find(l=>l.rel==="alternate");
-const url=linkObj.href;
-
-let content=entry.content?.$t || entry.summary?.$t || "";
-
-let imgMatch=content.match(/<img[^>]+src="([^"]+)"/);
-let image=imgMatch?imgMatch[1]:"";
-
-processFeedPost(title,url,image,content);
+for(let link of links){
+await processSingle(link);
 }
 
 }
 }
 
-function processFeedPost(title,url,image,content){
+// 🔥 NORMALIZACIJA URL-a
+function normalizeURL(url){
+try{
+const u=new URL(url);
 
-let container=document.createElement("div");
-container.innerHTML=content;
+// uklanja query (?m=1) i hash (#more)
+let clean=u.origin + u.pathname;
 
-// ukloni reklame
-container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
+// ukloni završni slash
+clean=clean.replace(/\/$/,'');
 
-let finalHTML=container.innerHTML;
-finalHTML=finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
-
-const endMsg=endings[Math.floor(Math.random()*endings.length)];
-finalHTML+=`<p><strong>${endMsg}</strong></p>`;
-
-const box=document.createElement("div");
-box.className="card";
-
-box.innerHTML=`
-<span class='label'>URL:</span>
-<input value="${url}">
-<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
-
-<span class='label'>Naslov:</span>
-<input value="${title.replace(/"/g,'&quot;')}">
-<button class='copyBtn' onclick="copyRaw('${title.replace(/"/g,'&quot;')}')">Copy naslov</button>
-
-<span class='label'>Slika:</span>
-${image?`<img src="${image}" style="max-width:100%">`:''}
-${image?`<button class='copyBtn' onclick="copyRaw('${image}')">Copy image URL</button>`:''}
-
-<span class='label'>Preview:</span>
-<div class='preview'>${finalHTML}</div>
-
-<span class='label'>HTML tekst:</span>
-<textarea>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-`;
-
-result.appendChild(box);
+return clean;
+}catch(e){
+return null;
+}
 }
 
 async function processSingle(url){
+
 const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 const res=await fetch(proxy);
 const html=await res.text();
@@ -144,16 +120,73 @@ let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
 let finalHTML='';
 
 if(contentDiv){
+
+function takeUntilStop(node){
+const fragment=document.createDocumentFragment();
+let stop=false;
+
+function recurse(current,parent){
+if(stop) return;
+
+if(current.nodeType===8 && current.nodeValue.includes('STOP TEXT HERE')){
+stop=true;
+return;
+}
+
+const clone=current.cloneNode(false);
+parent.appendChild(clone);
+
+current.childNodes.forEach(child=>{
+if(!stop) recurse(child,clone);
+});
+}
+
+node.childNodes.forEach(child=>recurse(child,fragment));
+return fragment;
+}
+
 const container=document.createElement('div');
-container.innerHTML=contentDiv.innerHTML;
+container.appendChild(takeUntilStop(contentDiv));
+
+// ukloni reklame
 container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
+
 finalHTML=container.innerHTML;
+
+// ukloni Blogger oglasnu frazu
 finalHTML=finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
+
 const endMsg=endings[Math.floor(Math.random()*endings.length)];
 finalHTML+=`<p><strong>${endMsg}</strong></p>`;
 }
+else{
+finalHTML="<i>Nije pronađen tekst</i>";
+}
 
-processFeedPost(ogTitle,url,ogImage,finalHTML);
+const box=document.createElement("div");
+box.className="card";
+
+box.innerHTML=`
+<span class='label'>URL:</span>
+<input value="${url}">
+<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
+
+<span class='label'>OG Naslov:</span>
+<input value="${ogTitle.replace(/"/g,'&quot;')}">
+<button class='copyBtn' onclick="copyRaw('${ogTitle.replace(/"/g,'&quot;')}')">Copy naslov</button>
+
+<span class='label'>OG Slika:</span>
+${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
+${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
+
+<span class='label'>Preview:</span>
+<div class='preview'>${finalHTML}</div>
+
+<span class='label'>HTML tekst:</span>
+<textarea>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+`;
+
+result.appendChild(box);
 }
 
 function copyRaw(text){
