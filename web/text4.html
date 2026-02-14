@@ -166,6 +166,7 @@ finalHTML="<i>Nije pronađen tekst</i>";
 const box=document.createElement("div");
 box.className="card";
 
+// ✅ DODATAK: copy dugme za tekst (preview + HTML)
 box.innerHTML=`
 <span class='label'>URL:</span>
 <input value="${url}">
@@ -179,18 +180,31 @@ box.innerHTML=`
 ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
 
-<span class='label'>Preview:</span>
-<div class='preview'>${finalHTML}</div>
+<span class='label'>Preview (plain text):</span>
+<div class='preview' id='previewBox'>${finalHTML}</div>
+<button class='copyBtn' onclick="copyHTML('previewBox')">Copy tekst (plain)</button>
 
 <span class='label'>HTML tekst:</span>
-<textarea>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+<textarea id='htmlBox'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+<button class='copyBtn' onclick="copyHTML('htmlBox')">Copy raw HTML</button>
 `;
 
 result.appendChild(box);
 }
 
+// 🔥 FUNKCIJA ZA COPY
 function copyRaw(text){
 navigator.clipboard.writeText(text);
+}
+
+function copyHTML(id){
+const el=document.getElementById(id);
+if(el.tagName==='TEXTAREA'){
+el.select();
+document.execCommand('copy');
+} else {
+navigator.clipboard.writeText(el.innerText);
+}
 }
 
 </script>
