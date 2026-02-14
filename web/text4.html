@@ -39,6 +39,8 @@ const endings=[
 "ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
 ];
 
+let postCounter = 0; // za jedinstvene ID-e
+
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
 r.addEventListener("change",()=>{
 urlInput.style.display=r.value==="manual"?"block":"none";
@@ -90,13 +92,8 @@ await processSingle(link);
 function normalizeURL(url){
 try{
 const u=new URL(url);
-
-// uklanja query (?m=1) i hash (#more)
 let clean=u.origin + u.pathname;
-
-// ukloni završni slash
-clean=clean.replace(/\/$/,'');
-
+clean=clean.replace(/\/$/,''); // ukloni završni slash
 return clean;
 }catch(e){
 return null;
@@ -152,10 +149,7 @@ container.appendChild(takeUntilStop(contentDiv));
 container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
 
 finalHTML=container.innerHTML;
-
-// ukloni Blogger oglasnu frazu
 finalHTML=finalHTML.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'');
-
 const endMsg=endings[Math.floor(Math.random()*endings.length)];
 finalHTML+=`<p><strong>${endMsg}</strong></p>`;
 }
@@ -166,7 +160,11 @@ finalHTML="<i>Nije pronađen tekst</i>";
 const box=document.createElement("div");
 box.className="card";
 
-// ✅ DODATAK: copy dugme za tekst (preview + HTML)
+// 🔹 Jedinstveni ID-evi
+const previewID = `preview-${postCounter}`;
+const htmlID = `html-${postCounter}`;
+postCounter++;
+
 box.innerHTML=`
 <span class='label'>URL:</span>
 <input value="${url}">
@@ -181,12 +179,12 @@ ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
 
 <span class='label'>Preview (plain text):</span>
-<div class='preview' id='previewBox'>${finalHTML}</div>
-<button class='copyBtn' onclick="copyHTML('previewBox')">Copy tekst (plain)</button>
+<div class='preview' id='${previewID}'>${finalHTML}</div>
+<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy tekst (plain)</button>
 
 <span class='label'>HTML tekst:</span>
-<textarea id='htmlBox'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-<button class='copyBtn' onclick="copyHTML('htmlBox')">Copy raw HTML</button>
+<textarea id='${htmlID}'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+<button class='copyBtn' onclick="copyHTML('${htmlID}')">Copy raw HTML</button>
 `;
 
 result.appendChild(box);
