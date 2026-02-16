@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ULTRA Blog Extractor</title>
+<title>URL Text & OG Extractor</title>
 
 <style>
-body{font-family:Arial;max-width:900px;margin:auto;background:#f5f5f5;padding:20px}
-.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
-input,button,textarea{width:100%;padding:10px;margin-top:8px}
-.preview{border:1px solid #ddd;padding:12px;margin-top:10px;line-height:1.6}
-.copyBtn{background:#111;color:#fff;border:none}
+body{font-family:Arial;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
+.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-bottom:20px}
+input,button{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
+button{cursor:pointer;font-weight:bold}
+.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;line-height:1.6}
+.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+textarea{width:100%;min-height:200px;margin-top:10px}
 </style>
 </head>
 
@@ -17,16 +19,15 @@ input,button,textarea{width:100%;padding:10px;margin-top:8px}
 
 <div class="card">
 
-<h2>ULTRA Blog Extractor</h2>
+<h2>URL Extractor</h2>
 
-<input id="manualUrl" placeholder="RUČNI URL">
-
+<input id="urlInput" placeholder="RUČNI URL">
 <button onclick="loadManual()">Učitaj ovaj URL</button>
 
 <hr>
 
 <input id="count" type="number" value="5">
-<button onclick="loadAuto()">Auto uzmi sa bloga</button>
+<button onclick="loadAuto()">Uzmi X tekstova sa bloga</button>
 
 <div id="result"></div>
 
@@ -36,7 +37,7 @@ input,button,textarea{width:100%;padding:10px;margin-top:8px}
 <script>
 
 // =======================
-// SMART FETCH (3 proxy fallback)
+// ⭐ ULTRA STABLE FETCH
 // =======================
 
 async function fetchHTML(url){
@@ -50,39 +51,42 @@ u=>`https://thingproxy.freeboard.io/fetch/${u}`
 ];
 
 for(const p of proxies){
-
 try{
+const r=await fetch(p(url),{cache:"no-store"});
+const t=await r.text();
+if(t && t.length>800) return t;
+}catch(e){}
+}
 
+// retry once
+await new Promise(r=>setTimeout(r,1200));
+
+for(const p of proxies){
+try{
 const r=await fetch(p(url));
 const t=await r.text();
-
-if(t.length>1000) return t;
-
+if(t && t.length>800) return t;
 }catch(e){}
+}
+
+throw "FETCH FAILED";
 
 }
 
-throw "proxy fail";
-
-}
 
 
 // =======================
-// NORMALIZE URL (no duplicates)
+// NORMALIZE URL
 // =======================
 
 function normalize(url){
-
-return url
-.replace(/\/$/,'')
-.replace(/^http:/,'https:')
-.split('?')[0];
-
+return url.replace(/\/$/,'').split('?')[0];
 }
 
 
+
 // =======================
-// REMOVE ADS + CUT TEXT
+// CLEAN CONTENT
 // =======================
 
 function cleanHTML(html){
@@ -90,48 +94,49 @@ function cleanHTML(html){
 const parser=new DOMParser();
 const doc=parser.parseFromString(html,'text/html');
 
-const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title;
-const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
+const ogTitle = doc.querySelector('meta[property="og:title"]')?.content || doc.title || '';
+const ogImage = doc.querySelector('meta[property="og:image"]')?.content || '';
 
-let content=doc.querySelector('.post-body')
+let contentDiv =
+doc.querySelector('.post-body.entry-content.float-container')
+|| doc.querySelector('.post-body')
 || doc.querySelector('.entry-content')
 || doc.querySelector('article');
 
-if(!content) return {ogTitle,ogImage,html:"NO CONTENT"};
+if(!contentDiv) return {ogTitle,ogImage,html:"Nije pronađen content div"};
 
-const div=document.createElement('div');
-div.innerHTML=content.innerHTML;
+const container=document.createElement('div');
+container.innerHTML=contentDiv.innerHTML;
 
 // remove junk
-div.querySelectorAll('script,style,iframe,ins').forEach(e=>e.remove());
+container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
 
-let final=div.innerHTML;
+let finalHTML=container.innerHTML;
 
-// CUT after ad text
+// cut at ad text
 const stop=/Tekst se nastavlja ispod oglasa/i;
-
-if(stop.test(final)){
-final=final.split(stop)[0];
+if(stop.test(finalHTML)){
+finalHTML=finalHTML.split(stop)[0];
 }
 
-return {ogTitle,ogImage,html:final};
+return {ogTitle,ogImage,html:finalHTML};
 
 }
+
 
 
 // =======================
 // COPY
 // =======================
 
-function copyText(t){
-
-navigator.clipboard.writeText(t);
-
+function copyText(text){
+navigator.clipboard.writeText(text);
 }
 
 
+
 // =======================
-// RENDER POST
+// RENDER RESULT
 // =======================
 
 function render(url,data){
@@ -141,26 +146,29 @@ box.className="card";
 
 box.innerHTML=`
 
-<b>URL</b>
+<b>URL:</b>
 <input value="${url}">
-<button class="copyBtn" onclick="copyText('${url}')">COPY URL</button>
+<button class="copyBtn" onclick="copyText('${url}')">Copy URL</button>
 
-<b>NASLOV</b>
-<input value="${data.ogTitle}">
-<button class="copyBtn" onclick="copyText(\`${data.ogTitle}\`)">COPY NASLOV</button>
+<b>Naslov:</b>
+<input value="${data.ogTitle.replace(/"/g,'&quot;')}">
+<button class="copyBtn" onclick="copyText(\`${data.ogTitle}\`)">Copy naslov</button>
 
 ${data.ogImage?`<img src="${data.ogImage}" style="max-width:100%">`:''}
-${data.ogImage?`<button class="copyBtn" onclick="copyText('${data.ogImage}')">COPY IMAGE</button>`:''}
+${data.ogImage?`<button class="copyBtn" onclick="copyText('${data.ogImage}')">Copy image URL</button>`:''}
 
+<b>Preview:</b>
 <div class="preview">${data.html}</div>
 
 <button class="copyBtn" onclick="copyText(\`${data.html.replace(/`/g,"")}\`)">
-COPY HTML
+Copy HTML
 </button>
 
 <button class="copyBtn" onclick="copyText(\`${data.html.replace(/<[^>]+>/g,'').replace(/`/g,"")}\`)">
-COPY TEXT
+Copy TEXT
 </button>
+
+<textarea>${data.html.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
 
 `;
 
@@ -176,20 +184,22 @@ document.getElementById('result').appendChild(box);
 
 async function loadManual(){
 
-const url=document.getElementById('manualUrl').value;
-
+const url=document.getElementById('urlInput').value.trim();
 if(!url) return;
 
+try{
 const html=await fetchHTML(url);
-
 render(url,cleanHTML(html));
+}catch(e){
+alert("Ne mogu učitati URL");
+}
 
 }
 
 
 
 // =======================
-// AUTO LOAD BLOG
+// AUTO BLOG LOAD
 // =======================
 
 async function loadAuto(){
@@ -197,6 +207,8 @@ async function loadAuto(){
 document.getElementById('result').innerHTML="";
 
 const max=document.getElementById('count').value;
+
+try{
 
 const feed=await fetchHTML("https://www.zanimljivosti.xyz/feeds/posts/default?alt=json");
 
@@ -226,9 +238,15 @@ render(link,cleanHTML(html));
 
 added++;
 
-await new Promise(r=>setTimeout(r,800)); // anti block
+await new Promise(r=>setTimeout(r,900));
 
 }catch(e){}
+
+}
+
+}catch(e){
+
+alert("Feed nije dostupan");
 
 }
 
