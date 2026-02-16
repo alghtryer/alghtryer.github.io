@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ULTRA Blog Extractor</title>
+
+<style>
+body{font-family:Arial;max-width:900px;margin:auto;background:#f5f5f5;padding:20px}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
+input,button,textarea{width:100%;padding:10px;margin-top:8px}
+.preview{border:1px solid #ddd;padding:12px;margin-top:10px;line-height:1.6}
+.copyBtn{background:#111;color:#fff;border:none}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>ULTRA Blog Extractor</h2>
+
+<input id="manualUrl" placeholder="RUČNI URL">
+
+<button onclick="loadManual()">Učitaj ovaj URL</button>
+
+<hr>
+
+<input id="count" type="number" value="5">
+<button onclick="loadAuto()">Auto uzmi sa bloga</button>
+
+<div id="result"></div>
+
+</div>
+
+
+<script>
+
+// =======================
+// SMART FETCH (3 proxy fallback)
+// =======================
+
+async function fetchHTML(url){
+
+const proxies=[
+
+u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+u=>`https://thingproxy.freeboard.io/fetch/${u}`
+
+];
+
+for(const p of proxies){
+
+try{
+
+const r=await fetch(p(url));
+const t=await r.text();
+
+if(t.length>1000) return t;
+
+}catch(e){}
+
+}
+
+throw "proxy fail";
+
+}
+
+
+// =======================
+// NORMALIZE URL (no duplicates)
+// =======================
+
+function normalize(url){
+
+return url
+.replace(/\/$/,'')
+.replace(/^http:/,'https:')
+.split('?')[0];
+
+}
+
+
+// =======================
+// REMOVE ADS + CUT TEXT
+// =======================
+
+function cleanHTML(html){
+
+const parser=new DOMParser();
+const doc=parser.parseFromString(html,'text/html');
+
+const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title;
+const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
+
+let content=doc.querySelector('.post-body')
+|| doc.querySelector('.entry-content')
+|| doc.querySelector('article');
+
+if(!content) return {ogTitle,ogImage,html:"NO CONTENT"};
+
+const div=document.createElement('div');
+div.innerHTML=content.innerHTML;
+
+// remove junk
+div.querySelectorAll('script,style,iframe,ins').forEach(e=>e.remove());
+
+let final=div.innerHTML;
+
+// CUT after ad text
+const stop=/Tekst se nastavlja ispod oglasa/i;
+
+if(stop.test(final)){
+final=final.split(stop)[0];
+}
+
+return {ogTitle,ogImage,html:final};
+
+}
+
+
+// =======================
+// COPY
+// =======================
+
+function copyText(t){
+
+navigator.clipboard.writeText(t);
+
+}
+
+
+// =======================
+// RENDER POST
+// =======================
+
+function render(url,data){
+
+const box=document.createElement('div');
+box.className="card";
+
+box.innerHTML=`
+
+<b>URL</b>
+<input value="${url}">
+<button class="copyBtn" onclick="copyText('${url}')">COPY URL</button>
+
+<b>NASLOV</b>
+<input value="${data.ogTitle}">
+<button class="copyBtn" onclick="copyText(\`${data.ogTitle}\`)">COPY NASLOV</button>
+
+${data.ogImage?`<img src="${data.ogImage}" style="max-width:100%">`:''}
+${data.ogImage?`<button class="copyBtn" onclick="copyText('${data.ogImage}')">COPY IMAGE</button>`:''}
+
+<div class="preview">${data.html}</div>
+
+<button class="copyBtn" onclick="copyText(\`${data.html.replace(/`/g,"")}\`)">
+COPY HTML
+</button>
+
+<button class="copyBtn" onclick="copyText(\`${data.html.replace(/<[^>]+>/g,'').replace(/`/g,"")}\`)">
+COPY TEXT
+</button>
+
+`;
+
+document.getElementById('result').appendChild(box);
+
+}
+
+
+
+// =======================
+// MANUAL LOAD
+// =======================
+
+async function loadManual(){
+
+const url=document.getElementById('manualUrl').value;
+
+if(!url) return;
+
+const html=await fetchHTML(url);
+
+render(url,cleanHTML(html));
+
+}
+
+
+
+// =======================
+// AUTO LOAD BLOG
+// =======================
+
+async function loadAuto(){
+
+document.getElementById('result').innerHTML="";
+
+const max=document.getElementById('count').value;
+
+const feed=await fetchHTML("https://www.zanimljivosti.xyz/feeds/posts/default?alt=json");
+
+const j=JSON.parse(feed);
+
+const used=new Set();
+
+let added=0;
+
+for(const post of j.feed.entry){
+
+if(added>=max) break;
+
+const link=post.link.find(l=>l.rel==="alternate").href;
+
+const n=normalize(link);
+
+if(used.has(n)) continue;
+
+used.add(n);
+
+try{
+
+const html=await fetchHTML(link);
+
+render(link,cleanHTML(html));
+
+added++;
+
+await new Promise(r=>setTimeout(r,800)); // anti block
+
+}catch(e){}
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
