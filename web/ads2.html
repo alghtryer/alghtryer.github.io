@@ -1,66 +1,151 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<title>Blogger AUTO ADS</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f2f2f2;
+  padding:20px;
+}
+.container{
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  max-width:900px;
+  margin:auto;
+  box-shadow:0 0 10px rgba(0,0,0,.1);
+}
+textarea{
+  width:100%;
+  height:250px;
+  margin:10px 0;
+  font-family:monospace;
+  font-size:14px;
+}
+button{
+  padding:10px 20px;
+  cursor:pointer;
+  font-size:16px;
+  margin-right:10px;
+}
+h2,h3{margin:5px 0;}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h2>Blogger AUTO ubacivanje reklama</h2>
+
+<h3>Zalijepi HTML kod:</h3>
+<textarea id="inputHtml" placeholder="Zalijepi Blogger HTML ovdje..."></textarea>
+
+<button onclick="replaceAds()">Dodaj reklame automatski</button>
+<button onclick="copyHtml()">Copy Novi HTML</button>
+
+<h3>Novi HTML:</h3>
+<textarea id="outputHtml" placeholder="Ovdje se pojavljuje novi HTML..."></textarea>
+
+</div>
+
+
 <script>
+
 function replaceAds(){
-  let html = document.getElementById("inputHtml").value;
 
-  // tekst iznad reklame
-  var preText = '<div style="text-align:center; font-size:small; color:#555; margin:5px 0;">- - - Tekst se nastavlja ispod oglasa - - -</div>\n';
+let html = document.getElementById("inputHtml").value;
 
-  // reklame
-  var ads1 = preText +
-    '<div data-type="_mgwidget" data-widget-id="1113798"></div>\n' +
-    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
-  var ads2 = preText +
-    '<div data-type="_mgwidget" data-widget-id="1674325"></div>\n' +
-    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+// ===== TEXT IZNAD REKLAME =====
 
-  var ads3 = preText +
-    '<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
-    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+var preText =
+'<div style="text-align:center; font-size:small; color:#555; margin:5px 0;">- - - Tekst se nastavlja ispod oglasa - - -</div>\n';
 
-  // ===== PODJELA TEKSTA =====
 
-  // prvo pokušaj po paragrafima
-  let parts = html.split("</p>");
+// ===== REKLAME =====
 
-  // ako nema dovoljno paragrafâ, pokušaj po <br>
-  if(parts.length < 4){
-    parts = html.split("<br>");
-    var joinTag = "<br>";
-  } else {
-    var joinTag = "</p>";
-  }
+var ads1 = preText +
+'<!-- ADS 1 -->\n' +
+'<div data-type="_mgwidget" data-widget-id="1113798"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
-  let total = parts.length;
+var ads2 = preText +
+'<!-- ADS 2 -->\n' +
+'<div data-type="_mgwidget" data-widget-id="1674325"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
-  if(total < 4){
-    alert("Tekst je prekratak za automatsko ubacivanje 3 reklame.");
-    document.getElementById("outputHtml").value = html;
-    return;
-  }
+var ads3 = preText +
+'<!-- ADS 3 -->\n' +
+'<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
-  // pozicije 1/4, 1/2, 3/4
-  let p1 = Math.floor(total * 0.25);
-  let p2 = Math.floor(total * 0.50);
-  let p3 = Math.floor(total * 0.75);
 
-  // ubacivanje od kraja prema početku (da se indeksi ne pomjere)
-  parts.splice(p3,0,ads3);
-  parts.splice(p2,0,ads2);
-  parts.splice(p1,0,ads1);
+// ===== PODJELA TEKSTA =====
 
-  let newHtml = parts.join(joinTag);
+// prvo pokušaj po paragrafima
+let parts = html.split("</p>");
+let joinTag = "</p>";
 
-  document.getElementById("outputHtml").value = newHtml;
+
+// ako nema dovoljno paragrafâ → koristi <br>
+if(parts.length < 4){
+  parts = html.split("<br>");
+  joinTag = "<br>";
 }
 
 
-// COPY
+let total = parts.length;
+
+
+// ako je tekst prekratak
+if(total < 4){
+  alert("Tekst je prekratak za 3 reklame.");
+  document.getElementById("outputHtml").value = html;
+  return;
+}
+
+
+// pozicije 1/4, 1/2, 3/4
+let p1 = Math.floor(total * 0.25);
+let p2 = Math.floor(total * 0.50);
+let p3 = Math.floor(total * 0.75);
+
+
+// ubacivanje OD KRAJA (VAŽNO)
+parts.splice(p3,0,ads3);
+parts.splice(p2,0,ads2);
+parts.splice(p1,0,ads1);
+
+
+// spajanje
+let newHtml = parts.join(joinTag);
+
+document.getElementById("outputHtml").value = newHtml;
+
+}
+
+
+
+// ===== COPY =====
+
 function copyHtml(){
-  let output = document.getElementById("outputHtml");
-  output.select();
-  output.setSelectionRange(0, 99999);
-  document.execCommand("copy");
-  alert("Novi HTML kopiran u clipboard!");
+
+let output = document.getElementById("outputHtml");
+
+output.select();
+output.setSelectionRange(0,99999);
+
+document.execCommand("copy");
+
+alert("Novi HTML kopiran!");
+
 }
+
 </script>
+
+</body>
+</html>
