@@ -1,0 +1,66 @@
+<script>
+function replaceAds(){
+  let html = document.getElementById("inputHtml").value;
+
+  // tekst iznad reklame
+  var preText = '<div style="text-align:center; font-size:small; color:#555; margin:5px 0;">- - - Tekst se nastavlja ispod oglasa - - -</div>\n';
+
+  // reklame
+  var ads1 = preText +
+    '<div data-type="_mgwidget" data-widget-id="1113798"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+  var ads2 = preText +
+    '<div data-type="_mgwidget" data-widget-id="1674325"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+  var ads3 = preText +
+    '<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
+    '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+  // ===== PODJELA TEKSTA =====
+
+  // prvo pokušaj po paragrafima
+  let parts = html.split("</p>");
+
+  // ako nema dovoljno paragrafâ, pokušaj po <br>
+  if(parts.length < 4){
+    parts = html.split("<br>");
+    var joinTag = "<br>";
+  } else {
+    var joinTag = "</p>";
+  }
+
+  let total = parts.length;
+
+  if(total < 4){
+    alert("Tekst je prekratak za automatsko ubacivanje 3 reklame.");
+    document.getElementById("outputHtml").value = html;
+    return;
+  }
+
+  // pozicije 1/4, 1/2, 3/4
+  let p1 = Math.floor(total * 0.25);
+  let p2 = Math.floor(total * 0.50);
+  let p3 = Math.floor(total * 0.75);
+
+  // ubacivanje od kraja prema početku (da se indeksi ne pomjere)
+  parts.splice(p3,0,ads3);
+  parts.splice(p2,0,ads2);
+  parts.splice(p1,0,ads1);
+
+  let newHtml = parts.join(joinTag);
+
+  document.getElementById("outputHtml").value = newHtml;
+}
+
+
+// COPY
+function copyHtml(){
+  let output = document.getElementById("outputHtml");
+  output.select();
+  output.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+  alert("Novi HTML kopiran u clipboard!");
+}
+</script>
