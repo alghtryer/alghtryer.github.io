@@ -2,78 +2,89 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ULTIMATE URL Extractor</title>
+<title>Reels Generator PRO</title>
 
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
-.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
-input,button,textarea{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
-button{cursor:pointer;font-weight:bold}
-.label{font-weight:bold;margin-top:15px;display:block}
-.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;line-height:1.6}
-.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+body {
+    font-family: Arial;
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+input, button, textarea {
+    padding: 10px;
+    margin: 10px;
+    width: 320px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #ff0050;
+    color: white;
+    cursor: pointer;
+}
+
+textarea {
+    height: 120px;
+}
+
+canvas {
+    margin-top: 20px;
+    border-radius: 12px;
+    max-width: 300px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-<h2>ULTIMATE Extractor (clean text + FB ready)</h2>
+<h2>🔥 Reels Generator PRO</h2>
 
-<label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
-<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
+<input type="text" id="url" placeholder="Unesi link">
+<br>
+<button onclick="generate()">Generiši</button>
+<button onclick="copyText()">Kopiraj tekst</button>
 
-<input id="urlInput" placeholder="Zalijepi URL...">
-<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
+<br>
+<textarea id="outputText"></textarea>
 
-<button onclick="loadData()">Učitaj sadržaj</button>
-
-<div id="result"></div>
-</div>
+<br>
+<canvas id="canvas" width="1080" height="1920"></canvas>
 
 <script>
 
 // ========================
-// 🔥 PROXY FETCH (multi + retry)
+// 🔥 PROXY SYSTEM
 // ========================
+
+const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+];
 
 async function fetchHTML(url){
 
-const proxies=[
-u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-u=>`https://thingproxy.freeboard.io/fetch/${u}`,
-u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-];
-
 for(const p of proxies){
 try{
-const r=await fetch(p(url),{cache:"no-store"});
-const t=await r.text();
-if(t && t.length>800) return t;
+const r = await fetch(p(url));
+const t = await r.text();
+if(t && t.length > 800) return t;
 }catch(e){}
 }
 
-// retry
-await new Promise(r=>setTimeout(r,1200));
-
-for(const p of proxies){
-try{
-const r=await fetch(p(url));
-const t=await r.text();
-if(t && t.length>800) return t;
-}catch(e){}
+throw new Error("Proxy fail");
 }
-
-throw "FETCH FAIL";
-}
-
 
 // ========================
 // 🔥 ENDINGS
 // ========================
 
-const endings=[
+const endings = [
 "NASTAVAK PRIČE U KOMENTARU 👇👇👇",
 "ČITAJ dalje u komentaru 👇👇👇",
 "OSTATAK PRICE PROCITAJTE NA LINKU U KOMENTARU ⬇️⬇️⬇️",
@@ -81,124 +92,55 @@ const endings=[
 "ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
 ];
 
-let postCounter=0;
-
-
 // ========================
-// MODE SWITCH
+// 🔥 MAIN
 // ========================
 
-document.querySelectorAll('input[name="mode"]').forEach(r=>{
-r.addEventListener("change",()=>{
-urlInput.style.display=r.value==="manual"?"block":"none";
-countInput.style.display=r.value==="auto"?"block":"none";
-});
-});
+async function generate(){
 
-
-// ========================
-// LOAD DATA
-// ========================
-
-async function loadData(){
-
-result.innerHTML="";
-const mode=document.querySelector('input[name="mode"]:checked').value;
-
-if(mode==="manual"){
-const url=urlInput.value.trim();
-if(!url) return alert("Unesi URL");
-await processSingle(url);
-}
-
-if(mode==="auto"){
-
-const count=parseInt(countInput.value);
-if(!count) return alert("Unesi broj tekstova");
+const url = document.getElementById("url").value;
 
 try{
 
-let html;
+const html = await fetchHTML(url);
+const doc = new DOMParser().parseFromString(html, 'text/html');
 
-try{
-html=await fetchHTML("https://www.zanimljivosti.xyz/");
-}catch(e){
-html=await fetchHTML("https://www.zanimljivosti.xyz/feeds/posts/default?alt=json");
+let contentDiv = doc.querySelector('.post-body.entry-content.float-container')
+|| doc.querySelector('.entry-content')
+|| doc.querySelector('article');
 
-const j=JSON.parse(html);
-
-let links=j.feed.entry.map(p=>p.link.find(l=>l.rel==="alternate").href);
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
+if(!contentDiv){
+alert("Nema teksta");
 return;
 }
 
-const doc=new DOMParser().parseFromString(html,'text/html');
-
-let links=[...doc.querySelectorAll('a')]
-.map(a=>a.href)
-.filter(h=>/^https:\/\/www\.zanimljivosti\.xyz\/202\d\/\d{2}\//.test(h));
-
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
-
-}catch(e){
-alert("Ne mogu učitati blog");
-}
-}
-}
-
-
 // ========================
-// 🔥 GLAVNA LOGIKA
+// 🔥 UZMI DO STOP
 // ========================
-
-async function processSingle(url){
-
-const html=await fetchHTML(url);
-const doc=new DOMParser().parseFromString(html,'text/html');
-
-const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
-const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
-
-let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
-||doc.querySelector('.entry-content')
-||doc.querySelector('article');
-
-let finalHTML='';
-
-if(contentDiv){
 
 function takeUntilStop(node){
 
-const fragment=document.createDocumentFragment();
-let stop=false;
+const fragment = document.createDocumentFragment();
+let stop = false;
 
-function walk(current,parent){
+function walk(current, parent){
 
 if(stop) return;
 
-// STOP marker
-if(current.nodeType===8 && current.nodeValue.includes('STOP TEXT HERE')){
-stop=true;
+// STOP komentar
+if(current.nodeType === 8 && current.nodeValue.includes('STOP TEXT HERE')){
+stop = true;
 return;
 }
 
 // ukloni reklame
-if(current.nodeType===1){
-
-const el=current;
+if(current.nodeType === 1){
+const el = current;
 
 if(
-el.tagName==="SCRIPT" ||
-el.tagName==="STYLE" ||
-el.tagName==="IFRAME" ||
+el.tagName === "SCRIPT" ||
+el.tagName === "STYLE" ||
+el.tagName === "IFRAME" ||
 el.className?.toLowerCase().includes("ads") ||
 el.className?.toLowerCase().includes("banner") ||
 el.innerText?.toLowerCase().includes("google") ||
@@ -208,20 +150,20 @@ return;
 }
 }
 
-const clone=current.cloneNode(false);
+const clone = current.cloneNode(false);
 parent.appendChild(clone);
 
 current.childNodes.forEach(child=>{
-if(!stop) walk(child,clone);
+if(!stop) walk(child, clone);
 });
 }
 
-node.childNodes.forEach(child=>walk(child,fragment));
+node.childNodes.forEach(child=>walk(child, fragment));
 
 return fragment;
 }
 
-const container=document.createElement('div');
+const container = document.createElement('div');
 container.appendChild(takeUntilStop(contentDiv));
 
 // dodatno čišćenje
@@ -229,89 +171,95 @@ container.querySelectorAll(`
 script,style,iframe,ins,
 .adsbygoogle,
 [class*="ads"],
-[class*="banner"],
-[class*="google"]
+[class*="banner"]
 `).forEach(e=>e.remove());
 
-let cleanHTML=container.innerHTML;
+let text = container.innerText;
 
-// ukloni "tekst se nastavlja"
-cleanHTML=cleanHTML
-.replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'')
+// očisti smeće
+text = text
 .replace(/Tekst se nastavlja ispod oglasa/gi,'')
-.replace(/Oglas/gi,'');
+.replace(/Oglas/gi,'')
+.trim();
 
-// ukloni prazne paragrafe
-cleanHTML=cleanHTML.replace(/<p>\s*<\/p>/g,'');
+// skrati za reels
+text = text.substring(0, 350);
 
 // dodaj završetak
-const endMsg=endings[Math.floor(Math.random()*endings.length)];
-cleanHTML+=`<p><strong>${endMsg}</strong></p>`;
+const endMsg = endings[Math.floor(Math.random()*endings.length)];
+text += "\n\n" + endMsg;
 
-finalHTML=cleanHTML;
+// prikaži
+document.getElementById("outputText").value = text;
 
+// napravi sliku
+drawImage(text);
+
+}catch(e){
+alert("Greška: " + e.message);
 }
-else{
-finalHTML="<i>Nije pronađen tekst</i>";
-}
-
-
-// ========================
-// OUTPUT
-// ========================
-
-const box=document.createElement("div");
-box.className="card";
-
-const previewID=`preview-${postCounter}`;
-const htmlID=`html-${postCounter}`;
-postCounter++;
-
-box.innerHTML=`
-<span class='label'>URL:</span>
-<input value="${url}">
-<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
-
-<span class='label'>OG Naslov:</span>
-<input value="${ogTitle.replace(/"/g,'&quot;')}">
-<button class='copyBtn' onclick="copyRaw('${ogTitle.replace(/"/g,'&quot;')}')">Copy naslov</button>
-
-<span class='label'>OG Slika:</span>
-${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
-${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
-
-<span class='label'>Preview (plain text):</span>
-<div class='preview' id='${previewID}'>${finalHTML}</div>
-<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy tekst</button>
-
-<span class='label'>HTML tekst:</span>
-<textarea id='${htmlID}'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-<button class='copyBtn' onclick="copyHTML('${htmlID}')">Copy HTML</button>
-`;
-
-result.appendChild(box);
 }
 
-
 // ========================
-// COPY
+// 🔥 COPY
 // ========================
 
-function copyRaw(text){
-navigator.clipboard.writeText(text);
+function copyText(){
+const t = document.getElementById("outputText");
+t.select();
+document.execCommand("copy");
+alert("Kopirano!");
 }
 
-function copyHTML(id){
-const el=document.getElementById(id);
+// ========================
+// 🔥 CANVAS
+// ========================
 
-if(el.tagName==='TEXTAREA'){
-el.select();
-document.execCommand('copy');
+function drawImage(text){
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "#000";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+gradient.addColorStop(0, "rgba(0,0,0,0.3)");
+gradient.addColorStop(1, "rgba(0,0,0,0.9)");
+
+ctx.fillStyle = gradient;
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+ctx.fillStyle = "#fff";
+ctx.font = "bold 60px Arial";
+ctx.textAlign = "center";
+
+wrapText(ctx, text, canvas.width/2, 300, 900, 80);
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+
+const words = text.split(" ");
+let line = "";
+
+for(let n=0;n<words.length;n++){
+
+const testLine = line + words[n] + " ";
+const testWidth = ctx.measureText(testLine).width;
+
+if(testWidth > maxWidth && n > 0){
+ctx.fillText(line, x, y);
+line = words[n] + " ";
+y += lineHeight;
 }else{
-navigator.clipboard.writeText(el.innerText);
+line = testLine;
 }
+}
+
+ctx.fillText(line, x, y);
 }
 
 </script>
+
 </body>
 </html>
