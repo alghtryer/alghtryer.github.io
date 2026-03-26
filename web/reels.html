@@ -13,10 +13,10 @@ body {
     padding: 20px;
 }
 
-input, button {
+input, button, textarea {
     padding: 10px;
     margin: 10px;
-    width: 300px;
+    width: 320px;
     border-radius: 8px;
     border: none;
 }
@@ -25,6 +25,11 @@ button {
     background: #ff0050;
     color: white;
     cursor: pointer;
+}
+
+textarea {
+    height: 120px;
+    resize: none;
 }
 
 canvas {
@@ -42,32 +47,85 @@ canvas {
 <input type="text" id="url" placeholder="Unesi link">
 <br>
 <button onclick="generate()">Generiši</button>
+<button onclick="copyText()">Kopiraj tekst</button>
+
+<br>
+<textarea id="outputText" placeholder="Tekst će biti ovdje..."></textarea>
 
 <br>
 <canvas id="canvas" width="1080" height="1920"></canvas>
 
 <script>
+
+// proxy lista
+const proxies = [
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`
+];
+
+// poruke za kraj
+const endings = [
+    "NASTAVAK PRIČE U KOMENTARU 👇👇👇",
+    "ČITAJ dalje u komentaru 👇👇👇",
+    "OSTATAK PRICE PROCITAJTE NA LINKU U KOMENTARU ⬇️⬇️⬇️",
+    "NASTAVAK U KOMENTARU 👇👇👇",
+    "ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
+];
+
+// timeout
+function fetchWithTimeout(resource, timeout = 8000) {
+    return Promise.race([
+        fetch(resource),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), timeout)
+        )
+    ]);
+}
+
+async function fetchFromProxies(url) {
+    for (let proxy of proxies) {
+        try {
+            const proxyUrl = proxy(url);
+            const res = await fetchWithTimeout(proxyUrl);
+
+            let text;
+
+            if (proxyUrl.includes("allorigins")) {
+                const data = await res.json();
+                text = data.contents;
+            } else {
+                text = await res.text();
+            }
+
+            if (text && text.length > 100) return text;
+
+        } catch (e) {}
+    }
+    throw new Error("Nijedan proxy ne radi");
+}
+
 async function generate() {
     const url = document.getElementById("url").value;
 
     try {
-        // ⚠️ koristi proxy zbog CORS-a
-        const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+        let html = await fetchFromProxies(url);
 
-        const res = await fetch(proxy);
-        const data = await res.json();
-
-        let html = data.contents;
-
-        // uzmi tekst do STOP markera
         let stopIndex = html.indexOf("<!--STOP TEXT HERE-->");
         let content = stopIndex !== -1 ? html.substring(0, stopIndex) : html;
 
-        // očisti HTML tagove
-        let text = content.replace(/<[^>]*>/g, "");
+        let text = content.replace(/<[^>]*>/g, "").trim();
 
-        // skrati tekst (da stane na sliku)
-        text = text.trim().substring(0, 400);
+        // skrati tekst
+        text = text.substring(0, 350);
+
+        // dodaj random završetak
+        const randomEnding = endings[Math.floor(Math.random() * endings.length)];
+        text += "\n\n" + randomEnding;
+
+        // prikaži u textarea
+        document.getElementById("outputText").value = text;
 
         drawImage(text);
 
@@ -76,22 +134,26 @@ async function generate() {
     }
 }
 
+function copyText() {
+    const textarea = document.getElementById("outputText");
+    textarea.select();
+    document.execCommand("copy");
+    alert("Tekst kopiran!");
+}
+
 function drawImage(text) {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    // pozadina
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // gradient overlay
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, "rgba(0,0,0,0.3)");
     gradient.addColorStop(1, "rgba(0,0,0,0.9)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // tekst stil
     ctx.fillStyle = "#fff";
     ctx.font = "bold 60px Arial";
     ctx.textAlign = "center";
@@ -105,8 +167,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 
     for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + " ";
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
+        const testWidth = ctx.measureText(testLine).width;
 
         if (testWidth > maxWidth && n > 0) {
             ctx.fillText(line, x, y);
@@ -118,6 +179,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     }
     ctx.fillText(line, x, y);
 }
+
 </script>
 
 </body>
