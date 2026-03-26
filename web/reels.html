@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reels Generator</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+input, button {
+    padding: 10px;
+    margin: 10px;
+    width: 300px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #ff0050;
+    color: white;
+    cursor: pointer;
+}
+
+canvas {
+    margin-top: 20px;
+    border-radius: 12px;
+    max-width: 300px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>FB Reels Image Generator</h2>
+
+<input type="text" id="url" placeholder="Unesi link">
+<br>
+<button onclick="generate()">Generiši</button>
+
+<br>
+<canvas id="canvas" width="1080" height="1920"></canvas>
+
+<script>
+async function generate() {
+    const url = document.getElementById("url").value;
+
+    try {
+        // ⚠️ koristi proxy zbog CORS-a
+        const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+
+        const res = await fetch(proxy);
+        const data = await res.json();
+
+        let html = data.contents;
+
+        // uzmi tekst do STOP markera
+        let stopIndex = html.indexOf("<!--STOP TEXT HERE-->");
+        let content = stopIndex !== -1 ? html.substring(0, stopIndex) : html;
+
+        // očisti HTML tagove
+        let text = content.replace(/<[^>]*>/g, "");
+
+        // skrati tekst (da stane na sliku)
+        text = text.trim().substring(0, 400);
+
+        drawImage(text);
+
+    } catch (e) {
+        alert("Greška: " + e.message);
+    }
+}
+
+function drawImage(text) {
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // pozadina
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // gradient overlay
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, "rgba(0,0,0,0.3)");
+    gradient.addColorStop(1, "rgba(0,0,0,0.9)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // tekst stil
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 60px Arial";
+    ctx.textAlign = "center";
+
+    wrapText(ctx, text, canvas.width / 2, 300, 900, 80);
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(" ");
+    let line = "";
+
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+
+        if (testWidth > maxWidth && n > 0) {
+            ctx.fillText(line, x, y);
+            line = words[n] + " ";
+            y += lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    ctx.fillText(line, x, y);
+}
+</script>
+
+</body>
+</html>
