@@ -28,7 +28,7 @@ button {
 }
 
 textarea {
-    height: 120px;
+    height: 140px;
 }
 
 canvas {
@@ -57,7 +57,7 @@ canvas {
 <script>
 
 // ========================
-// 🔥 PROXY SYSTEM
+// 🔥 PROXY SISTEM
 // ========================
 
 const proxies = [
@@ -115,7 +115,7 @@ return;
 }
 
 // ========================
-// 🔥 UZMI DO STOP
+// 🔥 UZMI DO STOP (SMART)
 // ========================
 
 function takeUntilStop(node){
@@ -127,13 +127,29 @@ function walk(current, parent){
 
 if(stop) return;
 
-// STOP komentar
+// 1️⃣ STOP komentar (ako postoji)
 if(current.nodeType === 8 && current.nodeValue.includes('STOP TEXT HERE')){
 stop = true;
 return;
 }
 
-// ukloni reklame
+// 2️⃣ fallback STOP (tekst)
+if(current.nodeType === 3){
+const txt = current.nodeValue.toLowerCase();
+
+if(
+txt.includes("tekst se nastavlja") ||
+txt.includes("nastavak pročitajte") ||
+txt.includes("nastavak price") ||
+txt.includes("pročitajte ostatak") ||
+txt.includes("read more")
+){
+stop = true;
+return;
+}
+}
+
+// 3️⃣ uklanjanje reklama
 if(current.nodeType === 1){
 const el = current;
 
@@ -174,13 +190,20 @@ script,style,iframe,ins,
 [class*="banner"]
 `).forEach(e=>e.remove());
 
+// ========================
+// 🔥 TEXT CLEAN
+// ========================
+
 let text = container.innerText;
 
-// očisti smeće
 text = text
 .replace(/Tekst se nastavlja ispod oglasa/gi,'')
 .replace(/Oglas/gi,'')
 .trim();
+
+// dodatni sigurnosni cut
+text = text.split(/tekst se nastavlja/i)[0];
+text = text.split(/nastavak/i)[0];
 
 // skrati za reels
 text = text.substring(0, 350);
@@ -192,7 +215,7 @@ text += "\n\n" + endMsg;
 // prikaži
 document.getElementById("outputText").value = text;
 
-// napravi sliku
+// generiši sliku
 drawImage(text);
 
 }catch(e){
@@ -220,9 +243,11 @@ function drawImage(text){
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+// background
 ctx.fillStyle = "#000";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+// gradient
 const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 gradient.addColorStop(0, "rgba(0,0,0,0.3)");
 gradient.addColorStop(1, "rgba(0,0,0,0.9)");
@@ -230,6 +255,7 @@ gradient.addColorStop(1, "rgba(0,0,0,0.9)");
 ctx.fillStyle = gradient;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+// tekst
 ctx.fillStyle = "#fff";
 ctx.font = "bold 60px Arial";
 ctx.textAlign = "center";
