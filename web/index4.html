@@ -126,15 +126,17 @@ function getRandomEnding() {
 function setTitleText(text) {
   const el = $("#titleText");
 
-  // 🔥 dodaj random nastavak
+  // ✅ 1. NA SLICI IDE SAMO ORIGINALNI NASLOV
+  el.text(text);
+
+  // ✅ 2. ZA COPY IDE NASLOV + RANDOM DODATAK
   const ending = getRandomEnding();
-  finalTitle = text + " - " + ending;
+  finalTitle = text + " " + ending;
 
-  el.text(finalTitle);
-
-  if (finalTitle.length > 140) el.css("font-size", "34px");
-  else if (finalTitle.length > 110) el.css("font-size", "40px");
-  else if (finalTitle.length > 80) el.css("font-size", "48px");
+  // font sizing može ostati po originalu
+  if (text.length > 140) el.css("font-size", "34px");
+  else if (text.length > 110) el.css("font-size", "40px");
+  else if (text.length > 80) el.css("font-size", "48px");
   else el.css("font-size", "60px");
 }
 
