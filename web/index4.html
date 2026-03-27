@@ -1,0 +1,198 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OG Slika i Naslov sa Proxy</title>
+
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+input, button, select { padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+.loader { display: none; margin-top: 10px; }
+
+#result {
+  position: relative;
+  padding: 10px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+}
+
+#result img#ogImage {
+  max-width: 100%;
+  display: none;
+}
+
+#titleText {
+  font-weight: bold;
+  margin-top: 20px;
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.theme-dark { background: black; }
+.theme-dark #titleText { color: white; }
+
+.theme-light { background: white; }
+.theme-light #titleText { color: black; }
+
+#logoOverlay {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+#logoOverlay img {
+  max-width: 160px;
+  transform: translateY(-50%);
+}
+
+#imageWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 315px;
+  overflow: hidden;
+  background-color: black;
+}
+
+#ogImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+<h2>OG Slika i Naslov sa Linka preko Proxy-a</h2>
+
+<input type="text" id="urlInput" placeholder="Unesi URL (https://...)" />
+
+<select id="themeSelect">
+  <option value="dark">Crna tema</option>
+  <option value="light">Bijela tema</option>
+</select>
+
+<button id="generateBtn">Prikaži</button>
+<div class="loader">⏳ Učitavanje...</div>
+
+<div id="result" class="theme-dark">
+  <img id="ogImage" alt="OG Slika" />
+
+  <div id="logoOverlay">
+    <img src="https://api.codetabs.com/v1/proxy/?quest=https://blogger.googleusercontent.com/img/a/AVvXsEiHPHXzpk-hGGVFGTrVmCatN3Rd4Iv8xXTt5KGo6hLL2FvFVbM8la4JWsnVlZ7q66NIOAVuB-ZYKt_4--95VtAUVjgKFjWOWr8Ats6U08jLIQKUmyRA9K6EES6ZWH2vxcvM2DL5iAmhCiH2UhGO_ScIkX3M3GLgJH-ddQ214FyddGabOYC_wfdDaLjTXA" crossorigin="anonymous"/>
+  </div>
+
+  <div id="titleText"></div>
+</div>
+
+<button id="copyBtn">📋 Copy naslov</button>
+<button id="screenshotBtn">Uzmi Screenshot</button>
+
+<br /><br />
+
+<img id="captured" style="display:none;max-width:100%;border:1px solid #ccc;">
+<a id="downloadBtn" download="screenshot.jpg" style="display:none;">
+  <button>Sačuvaj sliku</button>
+</a>
+
+<script>
+const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
+
+// 🔥 DODANI TEKSTOVI
+const endings = [
+"NASTAVAK PRIČE U KOMENTARU 👇👇👇",
+"ČITAJ dalje u komentaru 👇👇👇",
+"OSTATAK PRICE PROCITAJTE NA LINKU U KOMENTARU ⬇️⬇️⬇️",
+"NASTAVAK U KOMENTARU 👇👇👇",
+"ČITAJTE NA LINKU U KOMENTARU 👇👇👇"
+];
+
+let finalTitle = "";
+
+function getRandomEnding() {
+  return endings[Math.floor(Math.random() * endings.length)];
+}
+
+function setTitleText(text) {
+  const el = $("#titleText");
+
+  // 🔥 dodaj random nastavak
+  const ending = getRandomEnding();
+  finalTitle = text + " - " + ending;
+
+  el.text(finalTitle);
+
+  if (finalTitle.length > 140) el.css("font-size", "34px");
+  else if (finalTitle.length > 110) el.css("font-size", "40px");
+  else if (finalTitle.length > 80) el.css("font-size", "48px");
+  else el.css("font-size", "60px");
+}
+
+// ✅ COPY FUNKCIJA
+$("#copyBtn").on("click", function () {
+  if (!finalTitle) return alert("Prvo generiši naslov!");
+
+  navigator.clipboard.writeText(finalTitle);
+  alert("Naslov kopiran!");
+});
+
+$("#themeSelect").on("change", function () {
+  $("#result")
+    .removeClass("theme-dark theme-light")
+    .addClass($(this).val() === "dark" ? "theme-dark" : "theme-light");
+});
+
+$("#generateBtn").on("click", async function () {
+  const url = $("#urlInput").val().trim();
+  if (!url) return alert("Unesi URL.");
+  $(".loader").show();
+
+  try {
+    const res = await fetch(proxyUrl + encodeURIComponent(url));
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const title = doc.querySelector('meta[property="og:title"]')?.content || "Nema naslova";
+    const image = doc.querySelector('meta[property="og:image"]')?.content || "";
+
+    setTitleText(title);
+
+    if (image) {
+      $("#ogImage").attr("src", proxyUrl + encodeURIComponent(image)).show();
+    } else {
+      $("#ogImage").hide();
+    }
+  } catch (e) {
+    alert("Greška");
+    console.error(e);
+  } finally {
+    $(".loader").hide();
+  }
+});
+
+$("#screenshotBtn").on("click", function () {
+  html2canvas($("#result")[0], { useCORS: true, scale: 2 }).then(canvas => {
+    const url = canvas.toDataURL("image/jpeg", 0.9);
+    $("#captured").attr("src", url).show();
+    $("#downloadBtn").attr("href", url).show();
+  });
+});
+
+$("#ogImage").on("load", function () {
+  const imgBottom = $(this).position().top + $(this).outerHeight();
+  $("#logoOverlay").css("top", imgBottom + "px");
+});
+</script>
+
+</body>
+</html>
