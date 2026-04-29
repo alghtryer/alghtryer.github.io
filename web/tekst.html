@@ -3,119 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Text Extractor</title>
+    <title>Multi-Proxy Web Scraper</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f4f4f9; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; background: #eceff1; color: #333; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .controls { display: flex; gap: 10px; margin-bottom: 25px; }
+        input { flex-grow: 1; padding: 12px; border: 2px solid #ddd; border-radius: 6px; outline: none; transition: border 0.3s; }
+        input:focus { border-color: #007bff; }
+        button { padding: 12px 24px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; }
         button:hover { background: #0056b3; }
-        #output { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none; }
-        img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; }
-        h1 { font-size: 1.5rem; margin-top: 0; }
-        pre { white-space: pre-wrap; word-wrap: break-word; background: #f8f8f8; padding: 15px; border-radius: 4px; }
-        .copy-btn { background: #28a745; margin-top: 10px; }
+        #status { font-style: italic; color: #666; margin-bottom: 10px; }
+        #output { display: none; border-top: 2px solid #eee; padding-top: 20px; }
+        img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1#articleTitle { font-size: 1.8rem; color: #1a1a1a; margin-bottom: 15px; }
+        .copy-btn { background: #28a745; margin: 10px 0 20px 0; display: inline-flex; align-items: center; gap: 8px; }
+        .copy-btn:hover { background: #218838; }
+        pre { white-space: pre-wrap; word-wrap: break-word; background: #fdfdfd; padding: 20px; border: 1px solid #eee; border-radius: 8px; line-height: 1.6; font-family: 'Georgia', serif; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
-    <h2>Ekstraktor teksta i OG slike</h2>
-    <div class="controls">
-        <input type="text" id="urlInput" placeholder="Zalijepi URL web stranice ovdje...">
-        <button onclick="extractContent()">Preuzmi</button>
-    </div>
+    <div class="container">
+        <h2>Napredni Ekstraktor Sadržaja</h2>
+        <div class="controls">
+            <input type="text" id="urlInput" placeholder="Zalijepi URL vijesti ili članka...">
+            <button onclick="startExtraction()">Pokreni</button>
+        </div>
 
-    <div id="loading" style="display:none;">Učitavam i čistim sadržaj...</div>
+        <div id="status"></div>
 
-    <div id="output">
-        <img id="ogImage" src="" alt="OG Image">
-        <h1 id="articleTitle"></h1>
-        <button class="copy-btn" onclick="copyText()">📋 Kopiraj tekst</button>
-        <pre id="articleContent"></pre>
+        <div id="output">
+            <div id="imageContainer"></div>
+            <h1 id="articleTitle"></h1>
+            <button class="copy-btn" onclick="copyText()">📋 Kopiraj čisti tekst</button>
+            <pre id="articleContent"></pre>
+        </div>
     </div>
 
     <script>
-        async function extractContent() {
-            const url = document.getElementById('urlInput').value;
-            const outputDiv = document.getElementById('output');
-            const loading = document.getElementById('loading');
+        // Lista Proxy servisa za rotaciju ako jedan zakaže
+        const proxies = [
+            (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://thingproxy.freeboard.io/fetch/${url}` // Zadnja opcija
+        ];
+
+        async function startExtraction() {
+            const url = document.getElementById('urlInput').value.trim();
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
             
-            if (!url) return alert("Molimo unesite URL");
+            if (!url) return alert("Unesite ispravan URL");
 
-            loading.style.display = 'block';
-            outputDiv.style.display = 'none';
+            status.innerText = "Pokušavam dohvatiti podatke...";
+            output.style.display = 'none';
 
-            try {
-                // Koristimo proxy za zaobilaženje CORS-a
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, 'text/html');
+            let success = false;
 
-                // 1. Dobivanje Naslova
-                const title = doc.querySelector('title')?.innerText || "Bez naslova";
+            // Iteracija kroz API-je dok jedan ne proradi
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    status.innerText = `Pokušaj ${i + 1}/${proxies.length} (Korištenje Proxy servisa)...`;
+                    const response = await fetch(proxies[i](url));
+                    
+                    if (!response.ok) throw new Error("Proxy error");
 
-                // 2. Dobivanje OG Slike
-                const ogImgTag = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[name="twitter:image"]');
-                const ogImgSrc = ogImgTag ? ogImgTag.getAttribute('content') : '';
+                    let html;
+                    if (i === 0) { // AllOrigins vraća JSON objekt
+                        const data = await response.json();
+                        html = data.contents;
+                    } else { // Ostali vraćaju direktan HTML
+                        html = await response.text();
+                    }
 
-                // 3. Čišćenje sadržaja
-                // Uklanjamo neželjene elemente iz DOM-a prije uzimanja teksta
-                const tagsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'aside', 'ads'];
-                tagsToRemove.forEach(tag => {
-                    doc.querySelectorAll(tag).forEach(el => el.remove());
-                });
-
-                // Glavni tekst (pokušavamo naći body ili članak)
-                let contentBody = doc.body;
-                let text = contentBody.innerText;
-
-                // 4. Filtriranje zabranjenih riječi (Advertisement, Pročitaj više itd.)
-                const forbiddenPhrases = [
-                    'Advertisement', 'Read more', 'Pročitaj više', 'Related', 
-                    'Recommended', 'Povezano', 'Slično', 'Oglas'
-                ];
-
-                let lines = text.split('\n');
-                let cleanedLines = lines.filter(line => {
-                    const trimmed = line.trim();
-                    if (trimmed.length < 2) return false; // makni prazne linije
-                    // Provjera sadrži li linija neku od zabranjenih riječi
-                    return !forbiddenPhrases.some(phrase => trimmed.toLowerCase().includes(phrase.toLowerCase()));
-                });
-
-                let finalText = cleanedLines.join('\n\n');
-
-                // Prikaz rezultata
-                document.getElementById('articleTitle').innerText = title;
-                document.getElementById('articleContent').innerText = finalText;
-                
-                if (ogImgSrc) {
-                    document.getElementById('ogImage').src = ogImgSrc;
-                    document.getElementById('ogImage').style.display = 'block';
-                } else {
-                    document.getElementById('ogImage').style.display = 'none';
+                    if (html && html.length > 500) { // Provjera je li sadržaj legitiman
+                        processHTML(html);
+                        success = true;
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`Proxy ${i} nije uspio, pokušavam sljedeći...`);
                 }
+            }
 
-                loading.style.display = 'none';
-                outputDiv.style.display = 'block';
-
-            } catch (error) {
-                console.error(error);
-                alert("Greška pri dohvaćanju stranice. Neke stranice blokiraju pristup.");
-                loading.style.display = 'none';
+            if (!success) {
+                status.innerText = "Nažalost, nijedan API nije uspio probiti zaštitu ove stranice.";
+            } else {
+                status.innerText = "Uspješno učitano!";
+                output.style.display = 'block';
             }
         }
 
+        function processHTML(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // 1. Pronalaženje OG Slike
+            const ogImg = doc.querySelector('meta[property="og:image"]')?.content || 
+                          doc.querySelector('meta[name="twitter:image"]')?.content ||
+                          doc.querySelector('article img')?.src;
+
+            const imgContainer = document.getElementById('imageContainer');
+            imgContainer.innerHTML = ogImg ? `<img src="${ogImg}" alt="Feature Image">` : '';
+
+            // 2. Naslov
+            const title = doc.querySelector('h1')?.innerText || doc.title;
+            document.getElementById('articleTitle').innerText = title;
+
+            // 3. Čišćenje neželjenih elemenata
+            const junk = ['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', '.ads', '#ads', '.sidebar', '.comments', 'button'];
+            junk.forEach(selector => {
+                doc.querySelectorAll(selector).forEach(el => el.remove());
+            });
+
+            // 4. Ekstrakcija i filtriranje teksta
+            const paragraphs = Array.from(doc.querySelectorAll('p, h2, h3'));
+            const forbidden = ['advertisement', 'read more', 'pročitaj više', 'related', 'recommended', 'povezano', 'slično', 'oglas', 'facebook', 'instagram', 'pratite nas'];
+
+            let cleanText = paragraphs
+                .map(p => p.innerText.trim())
+                .filter(text => {
+                    if (text.length < 15) return false; // Premali komadi teksta su obično smeće
+                    return !forbidden.some(word => text.toLowerCase().includes(word));
+                })
+                .join('\n\n');
+
+            document.getElementById('articleContent').innerText = cleanText;
+        }
+
         function copyText() {
-            const text = document.getElementById('articleContent').innerText;
             const title = document.getElementById('articleTitle').innerText;
-            const fullContent = title + "\n\n" + text;
-            
-            navigator.clipboard.writeText(fullContent).then(() => {
-                alert("Tekst i naslov su kopirani!");
+            const body = document.getElementById('articleContent').innerText;
+            const fullText = `${title}\n\n${body}`;
+
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert("Tekst je spreman za objavu (kopiran)!");
             });
         }
     </script>
