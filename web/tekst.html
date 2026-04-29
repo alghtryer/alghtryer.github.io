@@ -46,7 +46,9 @@ border:1px solid #ddd;
 padding:15px;
 border-radius:8px;
 margin-top:10px;
-line-height:1.6
+line-height:1.6;
+background:#fff;
+white-space:normal
 }
 
 .copyBtn{
@@ -67,7 +69,7 @@ margin-top:10px
 <body>
 
 <div class="card">
-<h2>URL Extractor PRO (Blogger HTML + Ads)</h2>
+<h2>URL Extractor PRO (Blogger Clean BR + Ads)</h2>
 
 <label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
 <label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
@@ -101,16 +103,6 @@ if(t && t.length>800) return t;
 }catch(e){}
 }
 
-await new Promise(r=>setTimeout(r,1200));
-
-for(const p of proxies){
-try{
-const r=await fetch(p(url));
-const t=await r.text();
-if(t && t.length>800) return t;
-}catch(e){}
-}
-
 throw "FETCH FAIL";
 }
 
@@ -137,42 +129,41 @@ el.remove();
 }
 });
 
-return container.innerHTML.trim();
+return container.innerText || "";
 }
 
 // ========================
-// BLOGGER HTML BUILDER
+// BLOGGER HTML BUILDER (BR ONLY)
 // ========================
-function buildBloggerHTML(html){
+function buildBloggerHTML(text){
 
-const temp=document.createElement("div");
-temp.innerHTML=html;
+let lines=text
+.replace(/\r/g,"")
+.split("\n")
+.map(t=>t.trim())
+.filter(t=>t.length>0);
 
-let parts=[...temp.querySelectorAll("p, h1, h2, h3, li")];
-
-if(parts.length===0){
-parts=[temp];
-}
-
-let content=parts.map(e=>e.outerHTML || e.innerHTML);
-
-const total=content.length;
+// pozicije reklama
+const total=lines.length;
 
 const ad1=Math.floor(total*0.25);
 const ad2=Math.floor(total*0.50);
 const ad3=Math.floor(total*0.75);
 
-const ads1=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads1</div>`;
-const ads2=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads2</div>`;
-const ads3=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads3</div>`;
+// reklame (čisti tekst)
+const ads1="ads1";
+const ads2="ads2";
+const ads3="ads3";
 
-content.splice(ad1,0,ads1);
-content.splice(ad2+1,0,ads2);
-content.splice(ad3+2,0,ads3);
+// ubaci reklame
+lines.splice(ad1,0,ads1);
+lines.splice(ad2+1,0,ads2);
+lines.splice(ad3+2,0,ads3);
 
+// final HTML
 return `
-<div style="font-family:Verdana;font-size:16px;line-height:1.7;">
-${content.join("\n")}
+<div style="font-family:Verdana;">
+${lines.join("<br>")}
 </div>
 `;
 }
@@ -206,15 +197,7 @@ if(mode==="auto"){
 const count=parseInt(countInput.value);
 if(!count) return alert("Unesi broj tekstova");
 
-let html;
-
-try{
-html=await fetchHTML("https://www.zanimljivosti.xyz/");
-}catch(e){
-alert("Greška pri učitavanju");
-return;
-}
-
+const html=await fetchHTML("https://www.zanimljivosti.xyz/");
 const doc=new DOMParser().parseFromString(html,'text/html');
 
 let links=[...doc.querySelectorAll('a')]
@@ -258,14 +241,13 @@ finalHTML = buildBloggerHTML(cleaned);
 
 }
 else{
-finalHTML="<i>Nije pronađen tekst</i>";
+finalHTML="Nije pronađen tekst";
 }
 
 const box=document.createElement("div");
 box.className="card";
 
 const previewID=`preview-${postCounter}`;
-const htmlID=`html-${postCounter}`;
 postCounter++;
 
 box.innerHTML=`
@@ -281,30 +263,17 @@ ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 <span class='label'>Preview:</span>
 <div class='preview' id='${previewID}'>${finalHTML}</div>
 
-<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
-<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy HTML Preview</button>
-
-<span class='label'>HTML:</span>
-<textarea id='${htmlID}'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-<button class='copyBtn' onclick="copyHTML('${htmlID}')">Copy Full HTML</button>
+<button class='copyBtn' onclick="navigator.clipboard.writeText('${url}')">Copy URL</button>
+<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy HTML</button>
 `;
 
 result.appendChild(box);
 }
 
 // ========================
-function copyRaw(text){
-navigator.clipboard.writeText(text);
-}
-
 function copyHTML(id){
 const el=document.getElementById(id);
-if(el.tagName==='TEXTAREA'){
-el.select();
-document.execCommand('copy');
-}else{
-navigator.clipboard.writeText(el.innerText);
-}
+navigator.clipboard.writeText(el.innerHTML);
 }
 
 </script>
