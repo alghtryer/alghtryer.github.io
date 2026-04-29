@@ -18,17 +18,21 @@
 </head>
 <body>
   <div class="card">
-    <h1>Napredni čistač teksta sa web stranice</h1>
+    <h1>Napredni čistač teksta sa web stranice!</h1>
     <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
     <button onclick="extractContent()">Učitaj</button>
-    <button onclick="copyText()">Kopiraj tekst</button>
+    
     <div class="status" id="status">Više API fallback servisa za bolju dostupnost.</div>
-    <div id="result">
+    <div id="result" style="display:none; margin-top:20px;">
+      <div style="border:1px solid #ddd; border-radius:12px; padding:16px; background:#fafafa;">
       <h2 id="articleTitle" style="margin-top:20px;"></h2>
       <button onclick="copyTitle()">Kopiraj naslov</button>
       <button onclick="copyText()">Kopiraj tekst</button>
       <img id="ogImage" style="display:none;" />
-      <div id="output"></div>
+      <div id="output">        <div style="margin-top:12px;">
+          <button onclick="copyText()">Kopiraj tekst</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -45,6 +49,7 @@
         return;
       }
 
+      document.getElementById('result').style.display = 'none';
       output.innerText = 'Učitavanje...';
       ogImage.style.display = 'none';
       status.innerText = 'Učitavam članak...';
@@ -94,6 +99,7 @@
         text = text.trim();
 
         output.innerText = text || 'Nema pronađenog teksta.';
+        document.getElementById('result').style.display = 'block';
 
         try {
           await navigator.clipboard.writeText(text);
