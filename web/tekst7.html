@@ -18,7 +18,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>Napredni čistač teksta sa web stranice!</h1>
+    <h1>Napredni čistač teksta sa web stranice!!</h1>
     <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
     <button onclick="extractContent()">Učitaj</button>
     <button onclick="copyText()">Kopiraj tekst</button>
@@ -46,30 +46,49 @@
       status.innerText = 'Učitavam članak...';
 
       try {
-        const cleanUrl = url.replace(/^https?:\\/\\//, '');
-        const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
+        // Sigurno uklanjanje http/https bez regex-a
+        let cleanUrl = url;
+        if (cleanUrl.startsWith('https://')) {
+          cleanUrl = cleanUrl.slice(8);
+        } else if (cleanUrl.startsWith('http://')) {
+          cleanUrl = cleanUrl.slice(7);
+        }
 
+        const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
         const response = await fetch(apiUrl);
+
         if (!response.ok) {
           throw new Error('HTTP ' + response.status);
         }
 
         let text = await response.text();
 
-        text = text
-          .replace(/Advertisement/gi, '')
-          .replace(/Read more/gi, '')
-          .replace(/Pročitaj više/gi, '')
-          .replace(/Related articles[\\s\\S]*/gi, '')
-          .replace(/Recommended[\\s\\S]*/gi, '')
-          .trim();
+        // Čišćenje nepotrebnog sadržaja bez problematičnih regex flagova
+        const removePhrases = [
+          'Advertisement',
+          'Read more',
+          'Pročitaj više',
+          'Related articles',
+          'Recommended'
+        ];
 
-        output.innerText = text;
-        await navigator.clipboard.writeText(text);
-        status.innerText = 'Tekst učitan i kopiran.';
+        removePhrases.forEach(phrase => {
+          text = text.split(phrase).join('');
+        });
+
+        text = text.trim();
+
+        output.innerText = text || 'Nema pronađenog teksta.';
+
+        try {
+          await navigator.clipboard.writeText(text);
+          status.innerText = 'Tekst učitan i kopiran.';
+        } catch (e) {
+          status.innerText = 'Tekst učitan.';
+        }
       } catch (error) {
         output.innerText = 'Greška pri učitavanju: ' + error.message;
-        status.innerText = 'Stranica možda blokira pristup.';
+        status.innerText = 'Greška pri učitavanju stranice.';
       }
     }
 
