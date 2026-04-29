@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Napredni čistač web članka</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
+    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    input, button { padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; }
+    input { width: 68%; }
+    button { cursor: pointer; margin-left: 8px; }
+    img { max-width: 100%; border-radius: 12px; margin: 20px 0; }
+    #output { margin-top: 20px; line-height: 1.7; white-space: pre-wrap; }
+    .actions { margin-top: 12px; }
+    .status { color: #666; font-size: 14px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Napredni čistač teksta sa web stranice</h1>
+    <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
+    <button onclick="extractContent()">Učitaj</button>
+    <button onclick="copyText()">Kopiraj tekst</button>
+    <div class="status" id="status">Više API fallback servisa za bolju dostupnost.</div>
+    <div id="result">
+      <img id="ogImage" style="display:none;" />
+      <div id="output"></div>
+    </div>
+  </div>
+
+  <script>
+    const proxies = [
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`,
+      url => `https://cors.isomorphic-git.org/${url}`
+    ];
+
+    async function fetchWithFallback(url) {
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy(url));
+          if (response.ok) return await response.text();
+        } catch (e) {
+          console.warn('Proxy failed', e);
+        }
+      }
+      throw new Error('Svi API servisi trenutno nisu dostupni.');
+    }
+
+    function cleanDocument(doc) {
+      const selectors = [
+        'script','style','iframe','aside','nav','footer','header',
+        '.ad','.ads','.advertisement','.banner','.popup','.sponsored',
+        '.related','.recommended','.read-more','.more-posts','.widget',
+        '[id*=ad]','[class*=ad-]','[class*=banner]','[class*=popup]',
+        '[class*=related]','[class*=recommend]','[class*=read-more]'
+      ];
+      doc.querySelectorAll(selectors.join(',')).forEach(el => el.remove());
+      return doc;
+    }
+
+    async function extractContent() {
+      const url = document.getElementById('urlInput').value;
+      const output = document.getElementById('output');
+      const ogImage = document.getElementById('ogImage');
+      const status = document.getElementById('status');
+
+      output.innerText = 'Učitavanje...';
+      ogImage.style.display = 'none';
+      status.innerText = 'Pokušavam preko više API servisa...';
+
+      try {
+        const html = await fetchWithFallback(url);
+        const parser = new DOMParser();
+        let doc = parser.parseFromString(html, 'text/html');
+        doc = cleanDocument(doc);
+
+        const ogTag = doc.querySelector('meta[property="og:image"], meta[name="og:image"]');
+        if (ogTag?.content) {
+          ogImage.src = ogTag.content;
+          ogImage.style.display = 'block';
+        }
+
+        let main = doc.querySelector('article, main, .post-content, .entry-content') || doc.body;
+        const paragraphs = [...main.querySelectorAll('p')]
+          .map(p => p.innerText.trim())
+          .filter(t => t.length > 40 && !/read more|pročitaj više/i.test(t))
+          .join('
+
+');
+
+        output.innerText = paragraphs || 'Nije pronađen čist tekst.';
+        copyText(true);
+        status.innerText = 'Tekst očišćen i automatski kopiran.';
+      } catch (error) {
+        output.innerText = 'Greška: ' + error.message;
+        status.innerText = 'Neuspješno učitavanje.';
+      }
+    }
+
+    function copyText(silent = false) {
+      const text = document.getElementById('output').innerText;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        if (!silent) document.getElementById('status').innerText = 'Tekst kopiran u clipboard.';
+      });
+    }
+  </script>
+</body>
+</html>
