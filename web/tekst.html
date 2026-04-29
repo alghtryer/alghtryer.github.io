@@ -2,29 +2,78 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Text & Blogger Converter PRO</title>
+<title>URL Text & OG Extractor PRO</title>
 
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
-.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
-input,button,textarea{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
-button{cursor:pointer;font-weight:bold}
-.label{font-weight:bold;margin-top:15px;display:block}
-.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;line-height:1.6}
-.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+body{
+font-family:Arial,sans-serif;
+max-width:900px;
+margin:auto;
+padding:20px;
+background:#f5f5f5
+}
+
+.card{
+background:#fff;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-top:20px
+}
+
+input,button{
+width:100%;
+padding:12px;
+margin-top:10px;
+font-size:16px;
+border-radius:8px;
+border:1px solid #ccc
+}
+
+button{
+cursor:pointer;
+font-weight:bold
+}
+
+.label{
+font-weight:bold;
+margin-top:15px;
+display:block
+}
+
+.preview{
+border:1px solid #ddd;
+padding:15px;
+border-radius:8px;
+margin-top:10px;
+line-height:1.6
+}
+
+.copyBtn{
+background:#111;
+color:#fff;
+border:none;
+margin-top:8px
+}
+
+textarea{
+width:100%;
+height:200px;
+margin-top:10px
+}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h2>URL Extractor → Blogger HTML PRO</h2>
+<h2>URL Extractor PRO (Blogger HTML + Ads)</h2>
 
 <label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
 <label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
 
 <input id="urlInput" placeholder="Zalijepi URL...">
-<input id="countInput" type="number" placeholder="Broj tekstova" style="display:none">
+<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
 
 <button onclick="loadData()">Učitaj sadržaj</button>
 
@@ -33,90 +82,158 @@ button{cursor:pointer;font-weight:bold}
 
 <script>
 
-// ======================== FETCH ========================
+// ========================
+// FETCH
+// ========================
 async function fetchHTML(url){
+
 const proxies=[
 u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+u=>`https://thingproxy.freeboard.io/fetch/${u}`
 ];
+
+for(const p of proxies){
+try{
+const r=await fetch(p(url),{cache:"no-store"});
+const t=await r.text();
+if(t && t.length>800) return t;
+}catch(e){}
+}
+
+await new Promise(r=>setTimeout(r,1200));
 
 for(const p of proxies){
 try{
 const r=await fetch(p(url));
 const t=await r.text();
-if(t && t.length>500) return t;
+if(t && t.length>800) return t;
 }catch(e){}
 }
+
 throw "FETCH FAIL";
 }
 
-// ================= CLEAN =================
+// ========================
+// CLEAN CONTENT
+// ========================
 function cleanContent(container){
+
 container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
+
+const all = container.querySelectorAll('*');
+
+all.forEach(el=>{
+const txt = (el.innerText || '').toLowerCase();
+
+if(
+txt.includes('related') ||
+txt.includes('recommended') ||
+txt.includes('you may also like') ||
+txt.includes('slični') ||
+txt.includes('preporučeno')
+){
+el.remove();
+}
+});
+
 return container.innerHTML.trim();
 }
 
-// ================= ADS BLOCK =================
-function adBlock(){
-return `
-<div style="margin:20px 0;padding:10px;border:1px dashed #999;text-align:center;">
-<!-- MGID AD -->
-<div data-type="_mgwidget" data-widget-id="1113798"></div>
-<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
-</div>`;
-}
-
-// ================= BLOGGER HTML BUILDER =================
+// ========================
+// BLOGGER HTML BUILDER
+// ========================
 function buildBloggerHTML(html){
 
-const wrapper = document.createElement("div");
-wrapper.innerHTML = html;
+const temp=document.createElement("div");
+temp.innerHTML=html;
 
-let blocks = [...wrapper.children];
-if(blocks.length === 0) blocks = [wrapper];
+let parts=[...temp.querySelectorAll("p, h1, h2, h3, li")];
 
-const total = blocks.length;
+if(parts.length===0){
+parts=[temp];
+}
 
-let output = `<div style="font-family:Verdana; line-height:1.7;">`;
+let content=parts.map(e=>e.outerHTML || e.innerHTML);
 
-blocks.forEach((el, i) => {
+const total=content.length;
 
-let percent = (i / total) * 100;
+const ad1=Math.floor(total*0.25);
+const ad2=Math.floor(total*0.50);
+const ad3=Math.floor(total*0.75);
 
-output += el.outerHTML;
+const ads1=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads1</div>`;
+const ads2=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads2</div>`;
+const ads3=`<div style="margin:20px 0;padding:10px;background:#f1f1f1;text-align:center">ads3</div>`;
 
-// 25%
-if(Math.abs(percent - 25) < (100/total)) output += adBlock();
+content.splice(ad1,0,ads1);
+content.splice(ad2+1,0,ads2);
+content.splice(ad3+2,0,ads3);
 
-// 50%
-if(Math.abs(percent - 50) < (100/total)) output += adBlock();
-
-// 75%
-if(Math.abs(percent - 75) < (100/total)) output += adBlock();
-
-});
-
-output += `</div>`;
-return output;
+return `
+<div style="font-family:Verdana;font-size:16px;line-height:1.7;">
+${content.join("\n")}
+</div>
+`;
 }
 
 let postCounter=0;
 
-// ================= LOAD =================
+// mode switch
+document.querySelectorAll('input[name="mode"]').forEach(r=>{
+r.addEventListener("change",()=>{
+urlInput.style.display=r.value==="manual"?"block":"none";
+countInput.style.display=r.value==="auto"?"block":"none";
+});
+});
+
+// ========================
+// LOAD DATA
+// ========================
 async function loadData(){
+
 result.innerHTML="";
 const mode=document.querySelector('input[name="mode"]:checked').value;
 
 if(mode==="manual"){
-await processSingle(urlInput.value.trim());
+const url=urlInput.value.trim();
+if(!url) return alert("Unesi URL");
+await processSingle(url);
 }
 
 if(mode==="auto"){
-alert("Auto mode ostaje isti – fokus je Blogger export");
+
+const count=parseInt(countInput.value);
+if(!count) return alert("Unesi broj tekstova");
+
+let html;
+
+try{
+html=await fetchHTML("https://www.zanimljivosti.xyz/");
+}catch(e){
+alert("Greška pri učitavanju");
+return;
+}
+
+const doc=new DOMParser().parseFromString(html,'text/html');
+
+let links=[...doc.querySelectorAll('a')]
+.map(a=>a.href)
+.filter(h=>h.includes("zanimljivosti.xyz"))
+.map(u=>u.replace(/\/$/,''));
+
+links=[...new Set(links)].slice(0,count);
+
+for(let link of links){
+await processSingle(link);
+}
+
 }
 }
 
-// ================= SINGLE =================
+// ========================
+// SINGLE POST
+// ========================
 async function processSingle(url){
 
 const html=await fetchHTML(url);
@@ -125,54 +242,72 @@ const doc=new DOMParser().parseFromString(html,'text/html');
 const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
 const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
 
-let contentDiv=doc.querySelector('.post-body.entry-content')||doc.querySelector('article');
+let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
+||doc.querySelector('.entry-content')
+||doc.querySelector('article');
 
 let finalHTML='';
 
 if(contentDiv){
+
 const container=document.createElement("div");
 container.innerHTML=contentDiv.innerHTML;
-finalHTML = cleanContent(container);
-}
 
-// BLOGGER HTML
-const bloggerHTML = buildBloggerHTML(finalHTML);
+const cleaned = cleanContent(container);
+finalHTML = buildBloggerHTML(cleaned);
+
+}
+else{
+finalHTML="<i>Nije pronađen tekst</i>";
+}
 
 const box=document.createElement("div");
 box.className="card";
 
-const id=postCounter++;
+const previewID=`preview-${postCounter}`;
+const htmlID=`html-${postCounter}`;
+postCounter++;
 
 box.innerHTML=`
+<span class='label'>URL:</span>
+<input value="${url}">
 
-<span class='label'>OG Title</span>
-<input value="${ogTitle}">
+<span class='label'>OG Naslov:</span>
+<input value="${ogTitle.replace(/"/g,'&quot;')}">
 
-<span class='label'>Image</span>
+<span class='label'>OG Slika:</span>
 ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 
-<span class='label'>Preview</span>
-<div class='preview'>${finalHTML}</div>
+<span class='label'>Preview:</span>
+<div class='preview' id='${previewID}'>${finalHTML}</div>
 
-<span class='label'>BLOGGER HTML (READY)</span>
-<textarea id="html-${id}">${bloggerHTML.replace(/</g,'&lt;')}</textarea>
+<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
+<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy HTML Preview</button>
 
-<button class="copyBtn" onclick="copyHTML('html-${id}')">Copy Blogger HTML</button>
+<span class='label'>HTML:</span>
+<textarea id='${htmlID}'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+<button class='copyBtn' onclick="copyHTML('${htmlID}')">Copy Full HTML</button>
 `;
 
 result.appendChild(box);
 }
 
-// ================= COPY =================
+// ========================
+function copyRaw(text){
+navigator.clipboard.writeText(text);
+}
+
 function copyHTML(id){
 const el=document.getElementById(id);
+if(el.tagName==='TEXTAREA'){
 el.select();
-document.execCommand("copy");
+document.execCommand('copy');
+}else{
+navigator.clipboard.writeText(el.innerText);
+}
 }
 
 </script>
-
-<div id="result"></div>
 
 </body>
 </html>
