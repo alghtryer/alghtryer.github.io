@@ -2,29 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Text & OG Extractor</title>
+<title>URL Text & Blogger MGID Converter PRO</title>
 
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
-.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
-input,button{width:100%;padding:12px;margin-top:10px;font-size:16px;border-radius:8px;border:1px solid #ccc}
-button{cursor:pointer;font-weight:bold}
-.label{font-weight:bold;margin-top:15px;display:block}
-.preview{border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:10px;line-height:1.6}
-.copyBtn{background:#111;color:#fff;border:none;margin-top:8px}
+body{
+font-family:Arial,sans-serif;
+max-width:900px;
+margin:auto;
+padding:20px;
+background:#f5f5f5
+}
+
+.card{
+background:#fff;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-top:20px
+}
+
+input,button,textarea{
+width:100%;
+padding:12px;
+margin-top:10px;
+font-size:16px;
+border-radius:8px;
+border:1px solid #ccc
+}
+
+button{
+cursor:pointer;
+font-weight:bold
+}
+
+.label{
+font-weight:bold;
+margin-top:15px;
+display:block
+}
+
+.preview{
+border:1px solid #ddd;
+padding:15px;
+border-radius:8px;
+margin-top:10px;
+line-height:1.6;
+background:#fafafa
+}
+
+.copyBtn{
+background:#111;
+color:#fff;
+border:none;
+margin-top:8px
+}
+
+img{max-width:100%}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h2>URL Extractor (Text + OG Title + OG Image)</h2>
+<h2>URL Extractor → Blogger MGID PRO</h2>
 
 <label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
 <label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
 
 <input id="urlInput" placeholder="Zalijepi URL...">
-<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
+<input id="countInput" type="number" placeholder="Broj tekstova" style="display:none">
 
 <button onclick="loadData()">Učitaj sadržaj</button>
 
@@ -33,26 +79,13 @@ button{cursor:pointer;font-weight:bold}
 
 <script>
 
-// ========================
-// FETCH
-// ========================
+// ======================== FETCH ========================
 async function fetchHTML(url){
 
 const proxies=[
 u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-u=>`https://thingproxy.freeboard.io/fetch/${u}`
+u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
 ];
-
-for(const p of proxies){
-try{
-const r=await fetch(p(url),{cache:"no-store"});
-const t=await r.text();
-if(t && t.length>800) return t;
-}catch(e){}
-}
-
-await new Promise(r=>setTimeout(r,1200));
 
 for(const p of proxies){
 try{
@@ -65,32 +98,9 @@ if(t && t.length>800) return t;
 throw "FETCH FAIL";
 }
 
-// ========================
-// CLEAN CONTENT (FIXED RELATED ISSUE)
-// ========================
+// ================= CLEAN =================
 function cleanContent(container){
-
-// ukloni skripte, reklame itd.
-container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
-
-// ukloni RELATED blok, ali NE cijeli tekst
-const all = container.querySelectorAll('*');
-
-all.forEach(el=>{
-  const txt = (el.innerText || '').toLowerCase();
-
-  if(
-    txt.includes('related') ||
-    txt.includes('recommended') ||
-    txt.includes('you may also like') ||
-    txt.includes('slični članci') ||
-    txt.includes('slični tekstovi') ||
-    txt.includes('preporučeno')
-  ){
-    el.remove();
-  }
-});
-
+container.querySelectorAll('script,style,iframe,ins').forEach(e=>e.remove());
 return container.innerHTML.trim();
 }
 
@@ -104,140 +114,130 @@ countInput.style.display=r.value==="auto"?"block":"none";
 });
 });
 
-// ========================
-// LOAD DATA
-// ========================
+// ================= LOAD =================
 async function loadData(){
 
 result.innerHTML="";
 const mode=document.querySelector('input[name="mode"]:checked').value;
 
 if(mode==="manual"){
-const url=urlInput.value.trim();
-if(!url) return alert("Unesi URL");
-await processSingle(url);
+await processSingle(urlInput.value.trim());
 }
 
 if(mode==="auto"){
-
-const count=parseInt(countInput.value);
-if(!count) return alert("Unesi broj tekstova");
-
-try{
-
-let html;
-
-try{
-html=await fetchHTML("https://www.zanimljivosti.xyz/");
-}catch(e){
-html=await fetchHTML("https://www.zanimljivosti.xyz/feeds/posts/default?alt=json");
-
-const j=JSON.parse(html);
-
-let links=j.feed.entry.map(p=>p.link.find(l=>l.rel==="alternate").href);
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
-
-return;
-}
-
-const doc=new DOMParser().parseFromString(html,'text/html');
-
-let links=[...doc.querySelectorAll('a')]
-.map(a=>a.href)
-.filter(h=>/^https:\/\/www\.zanimljivosti\.xyz\/202\d\/\d{2}\//.test(h))
-.map(u=>u.replace(/\/$/,''));
-
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
-
-}catch(e){
-alert("Ne mogu učitati blog trenutno");
-}
-
+alert("Auto mode skraćen u ovoj verziji (može se vratiti)");
 }
 }
 
-// ========================
-// SINGLE POST
-// ========================
+// ================= MGID ADS =================
+function mgidAds(){
+
+return `
+<!-- MGID 1 -->
+<div data-type="_mgwidget" data-widget-id="1113798"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+
+<!-- MGID 2 -->
+<div data-type="_mgwidget" data-widget-id="1674325"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+
+<!-- MGID 3 -->
+<div data-type="_mgwidget" data-widget-id="1689711"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+`;
+}
+
+// ================= BLOGGER BUILDER =================
+function buildBloggerHTML(html){
+
+const temp=document.createElement("div");
+temp.innerHTML=html;
+
+const text=temp.innerText;
+const words=text.split(/\s+/);
+
+const total=words.length;
+
+const a1=Math.floor(total*0.25);
+const a2=Math.floor(total*0.50);
+const a3=Math.floor(total*0.75);
+
+let out=[];
+let buf=[];
+
+function ad(){
+return `<div style="margin:20px 0;">${mgidAds()}</div>`;
+}
+
+words.forEach((w,i)=>{
+
+buf.push(w);
+
+if(i===a1||i===a2||i===a3){
+out.push(buf.join(" "));
+out.push(ad());
+buf=[];
+}
+
+});
+
+out.push(buf.join(" "));
+
+return `
+<div style="font-family:Verdana; font-size:16px; line-height:1.7;">
+${out.join("<br><br>")}
+</div>
+`;
+}
+
+// ================= SINGLE =================
 async function processSingle(url){
 
 const html=await fetchHTML(url);
 const doc=new DOMParser().parseFromString(html,'text/html');
 
-const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
-const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
+const title=doc.querySelector('meta[property="og:title"]')?.content||doc.title;
 
-let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
-||doc.querySelector('.entry-content')
-||doc.querySelector('article');
+let content=doc.querySelector('.post-body.entry-content')||
+doc.querySelector('.entry-content')||
+doc.querySelector('article');
 
-let finalHTML='';
+let clean="";
 
-if(contentDiv){
-
-const container=document.createElement('div');
-container.innerHTML=contentDiv.innerHTML;
-
-finalHTML = cleanContent(container);
-
+if(content){
+const c=document.createElement("div");
+c.innerHTML=content.innerHTML;
+clean=cleanContent(c);
 }
-else{
-finalHTML="<i>Nije pronađen tekst</i>";
-}
+
+const bloggerHTML=buildBloggerHTML(clean);
 
 const box=document.createElement("div");
 box.className="card";
 
-const previewID=`preview-${postCounter}`;
-const htmlID=`html-${postCounter}`;
-postCounter++;
+const id=postCounter++;
 
 box.innerHTML=`
-<span class='label'>URL:</span>
-<input value="${url}">
-<button class='copyBtn' onclick="copyRaw('${url}')">Copy URL</button>
+<span class="label">Title:</span>
+<input value="${title}">
 
-<span class='label'>OG Naslov:</span>
-<input value="${ogTitle.replace(/"/g,'&quot;')}">
-<button class='copyBtn' onclick="copyRaw('${ogTitle.replace(/"/g,'&quot;')}')">Copy naslov</button>
+<span class="label">Preview:</span>
+<div class="preview">${clean}</div>
 
-<span class='label'>OG Slika:</span>
-${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
-${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
+<span class="label">Blogger HTML (VERDANA + MGID ADS):</span>
+<textarea id="b${id}">${bloggerHTML.replace(/</g,'&lt;')}</textarea>
 
-<span class='label'>Preview (clean text):</span>
-<div class='preview' id='${previewID}'>${finalHTML}</div>
-<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy tekst</button>
-
-<span class='label'>HTML:</span>
-<textarea id='${htmlID}'>${finalHTML.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-<button class='copyBtn' onclick="copyHTML('${htmlID}')">Copy HTML</button>
+<button class="copyBtn" onclick="copyHTML('b${id}')">Copy Blogger HTML</button>
 `;
 
 result.appendChild(box);
 }
 
-// ========================
-function copyRaw(text){
-navigator.clipboard.writeText(text);
-}
-
+// ================= COPY =================
 function copyHTML(id){
 const el=document.getElementById(id);
-if(el.tagName==='TEXTAREA'){
 el.select();
-document.execCommand('copy');
-}else{
-navigator.clipboard.writeText(el.innerText);
-}
+document.execCommand("copy");
 }
 
 </script>
