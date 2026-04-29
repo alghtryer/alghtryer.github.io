@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Text & OG Extractor</title>
+<title>URL Text & OG Extractor!</title>
 
 <style>
 body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
@@ -34,22 +34,7 @@ button{cursor:pointer;font-weight:bold}
 <script>
 
 // ========================
-// CLEAN CONTENT (RELATED + JUNK REMOVE)
-// ========================
-function cleanContent(html){
-  return html
-    .replace(/(related|recommended|you may also like|slični tekstovi|preporučeno|čitaj također|similar posts|you might also like)[\s\S]*/gi, '')
-    .replace(/-\s*-\s*-\s*Tekst se nastavlja ispod oglasa\s*-\s*-\s*-/gi,'')
-    .replace(/<script[\s\S]*?<\/script>/gi,'')
-    .replace(/<style[\s\S]*?<\/style>/gi,'')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi,'')
-    .replace(/<ins[\s\S]*?<\/ins>/gi,'')
-    .replace(/<div[^>]*>\s*<\/div>/gi,'')
-    .trim();
-}
-
-// ========================
-// FETCH HTML
+// FETCH
 // ========================
 async function fetchHTML(url){
 
@@ -81,9 +66,37 @@ throw "FETCH FAIL";
 }
 
 // ========================
+// CLEAN CONTENT (FIXED RELATED ISSUE)
+// ========================
+function cleanContent(container){
+
+// ukloni skripte, reklame itd.
+container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
+
+// ukloni RELATED blok, ali NE cijeli tekst
+const all = container.querySelectorAll('*');
+
+all.forEach(el=>{
+  const txt = (el.innerText || '').toLowerCase();
+
+  if(
+    txt.includes('related') ||
+    txt.includes('recommended') ||
+    txt.includes('you may also like') ||
+    txt.includes('slični članci') ||
+    txt.includes('slični tekstovi') ||
+    txt.includes('preporučeno')
+  ){
+    el.remove();
+  }
+});
+
+return container.innerHTML.trim();
+}
 
 let postCounter=0;
 
+// mode switch
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
 r.addEventListener("change",()=>{
 urlInput.style.display=r.value==="manual"?"block":"none";
@@ -173,9 +186,7 @@ if(contentDiv){
 const container=document.createElement('div');
 container.innerHTML=contentDiv.innerHTML;
 
-container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
-
-finalHTML = cleanContent(container.innerHTML);
+finalHTML = cleanContent(container);
 
 }
 else{
@@ -214,8 +225,6 @@ ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image UR
 result.appendChild(box);
 }
 
-// ========================
-// COPY FUNCTIONS
 // ========================
 function copyRaw(text){
 navigator.clipboard.writeText(text);
