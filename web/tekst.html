@@ -1,95 +1,123 @@
 <!DOCTYPE html>
-<html lang="bs">
+<html lang="hr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Čistač web članka</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
-    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    input, button { padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; }
-    input { width: 70%; }
-    button { cursor: pointer; margin-left: 8px; }
-    img { max-width: 100%; border-radius: 12px; margin: 15px 0; }
-    #resultBox { display:none; margin-top:20px; }
-    .box { border:1px solid #ddd; border-radius:12px; padding:16px; background:#fafafa; }
-    #output { white-space: pre-wrap; line-height:1.6; }
-    .status { color:#666; font-size:14px; margin-top:10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Text Extractor</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f4f4f9; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        #output { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none; }
+        img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; }
+        h1 { font-size: 1.5rem; margin-top: 0; }
+        pre { white-space: pre-wrap; word-wrap: break-word; background: #f8f8f8; padding: 15px; border-radius: 4px; }
+        .copy-btn { background: #28a745; margin-top: 10px; }
+    </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Čistač web članka</h2>
-
-  <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
-  <button onclick="extractContent()">Učitaj</button>
-
-  <div class="status" id="status">Spreman za učitavanje</div>
-
-  <div id="resultBox">
-    <div class="box">
-      <img id="ogImage" style="display:none;" />
-      <div id="output"></div>
-      <div style="margin-top:12px;">
-        <button onclick="copyText()">Kopiraj tekst</button>
-      </div>
+    <h2>Ekstraktor teksta i OG slike</h2>
+    <div class="controls">
+        <input type="text" id="urlInput" placeholder="Zalijepi URL web stranice ovdje...">
+        <button onclick="extractContent()">Preuzmi</button>
     </div>
-  </div>
-</div>
 
-<script>
-async function extractContent() {
-  const url = document.getElementById('urlInput').value.trim();
-  const output = document.getElementById('output');
-  const status = document.getElementById('status');
-  const resultBox = document.getElementById('resultBox');
-  const ogImage = document.getElementById('ogImage');
+    <div id="loading" style="display:none;">Učitavam i čistim sadržaj...</div>
 
-  if (!url) {
-    status.innerText = 'Unesi URL';
-    return;
-  }
+    <div id="output">
+        <img id="ogImage" src="" alt="OG Image">
+        <h1 id="articleTitle"></h1>
+        <button class="copy-btn" onclick="copyText()">📋 Kopiraj tekst</button>
+        <pre id="articleContent"></pre>
+    </div>
 
-  status.innerText = 'Učitavanje...';
-  resultBox.style.display = 'none';
-  ogImage.style.display = 'none';
-  output.innerText = '';
+    <script>
+        async function extractContent() {
+            const url = document.getElementById('urlInput').value;
+            const outputDiv = document.getElementById('output');
+            const loading = document.getElementById('loading');
+            
+            if (!url) return alert("Molimo unesite URL");
 
-  try {
-    let cleanUrl = url.replace('https://','').replace('http://','');
-    const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
+            loading.style.display = 'block';
+            outputDiv.style.display = 'none';
 
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+            try {
+                // Koristimo proxy za zaobilaženje CORS-a
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
 
-    let text = await response.text();
+                // 1. Dobivanje Naslova
+                const title = doc.querySelector('title')?.innerText || "Bez naslova";
 
-    const remove = ['Advertisement','Read more','Pročitaj više','Related','Recommended'];
-    remove.forEach(r => text = text.split(r).join(''));
+                // 2. Dobivanje OG Slike
+                const ogImgTag = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[name="twitter:image"]');
+                const ogImgSrc = ogImgTag ? ogImgTag.getAttribute('content') : '';
 
-    output.innerText = text;
+                // 3. Čišćenje sadržaja
+                // Uklanjamo neželjene elemente iz DOM-a prije uzimanja teksta
+                const tagsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'aside', 'ads'];
+                tagsToRemove.forEach(tag => {
+                    doc.querySelectorAll(tag).forEach(el => el.remove());
+                });
 
-    const imgMatch = text.match(/https?:\/\/[^\s]+\.(jpg|png|jpeg|webp)/i);
-    if (imgMatch) {
-      ogImage.src = imgMatch[0];
-      ogImage.style.display = 'block';
-    }
+                // Glavni tekst (pokušavamo naći body ili članak)
+                let contentBody = doc.body;
+                let text = contentBody.innerText;
 
-    resultBox.style.display = 'block';
-    status.innerText = 'Učitano';
+                // 4. Filtriranje zabranjenih riječi (Advertisement, Pročitaj više itd.)
+                const forbiddenPhrases = [
+                    'Advertisement', 'Read more', 'Pročitaj više', 'Related', 
+                    'Recommended', 'Povezano', 'Slično', 'Oglas'
+                ];
 
-  } catch (e) {
-    status.innerText = 'Greška: ' + e.message;
-  }
-}
+                let lines = text.split('\n');
+                let cleanedLines = lines.filter(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.length < 2) return false; // makni prazne linije
+                    // Provjera sadrži li linija neku od zabranjenih riječi
+                    return !forbiddenPhrases.some(phrase => trimmed.toLowerCase().includes(phrase.toLowerCase()));
+                });
 
-function copyText() {
-  const text = document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text);
-  document.getElementById('status').innerText = 'Kopirano';
-}
-</script>
+                let finalText = cleanedLines.join('\n\n');
 
+                // Prikaz rezultata
+                document.getElementById('articleTitle').innerText = title;
+                document.getElementById('articleContent').innerText = finalText;
+                
+                if (ogImgSrc) {
+                    document.getElementById('ogImage').src = ogImgSrc;
+                    document.getElementById('ogImage').style.display = 'block';
+                } else {
+                    document.getElementById('ogImage').style.display = 'none';
+                }
+
+                loading.style.display = 'none';
+                outputDiv.style.display = 'block';
+
+            } catch (error) {
+                console.error(error);
+                alert("Greška pri dohvaćanju stranice. Neke stranice blokiraju pristup.");
+                loading.style.display = 'none';
+            }
+        }
+
+        function copyText() {
+            const text = document.getElementById('articleContent').innerText;
+            const title = document.getElementById('articleTitle').innerText;
+            const fullContent = title + "\n\n" + text;
+            
+            navigator.clipboard.writeText(fullContent).then(() => {
+                alert("Tekst i naslov su kopirani!");
+            });
+        }
+    </script>
 </body>
 </html>
