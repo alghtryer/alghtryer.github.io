@@ -18,7 +18,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>Napredni čistač teksta sa web stranice</h1>
+    <h1>Napredni čistač teksta sa web stranice!</h1>
     <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
     <button onclick="extractContent()">Učitaj</button>
     <button onclick="copyText()">Kopiraj tekst</button>
@@ -30,90 +30,54 @@
   </div>
 
   <script>
-    const proxies = [
-      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-      url => `https://r.jina.ai/http://${url.replace(/^https?:\\/\\//, '')}`,
-      url => `https://r.jina.ai/http://r.jina.ai/http://${url.replace(/^https?:\\/\\//, '')}`,
-      url => `https://cors.isomorphic-git.org/${url}`
-    ];
-
-    async function fetchWithFallback(url) {
-      const cleanUrl = url.trim();
-      for (const proxy of proxies) {
-        try {
-          const proxyUrl = proxy(cleanUrl);
-          console.log('Trying:', proxyUrl);
-          const response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'text/html, text/plain, */*' }
-          });
-          if (!response.ok) continue;
-          const text = await response.text();
-          if (text && text.length > 200) return text;
-        } catch (e) {
-          console.warn('Proxy failed', e);
-        }
-      }
-      throw new Error('Svi API servisi trenutno nisu dostupni ili stranica blokira pristup.');
-    }
-
-    function cleanDocument(doc) {
-      const selectors = [
-        'script','style','iframe','aside','nav','footer','header',
-        '.ad','.ads','.advertisement','.banner','.popup','.sponsored',
-        '.related','.recommended','.read-more','.more-posts','.widget',
-        '[id*=ad]','[class*=ad-]','[class*=banner]','[class*=popup]',
-        '[class*=related]','[class*=recommend]','[class*=read-more]'
-      ];
-      doc.querySelectorAll(selectors.join(',')).forEach(el => el.remove());
-      return doc;
-    }
-
     async function extractContent() {
-      const url = document.getElementById('urlInput').value;
+      const url = document.getElementById('urlInput').value.trim();
       const output = document.getElementById('output');
       const ogImage = document.getElementById('ogImage');
       const status = document.getElementById('status');
 
+      if (!url) {
+        status.innerText = 'Unesi URL link.';
+        return;
+      }
+
       output.innerText = 'Učitavanje...';
       ogImage.style.display = 'none';
-      status.innerText = 'Pokušavam učitati članak preko više servisa...';
+      status.innerText = 'Učitavam članak...';
 
       try {
-        const html = await fetchWithFallback(url);
-        const parser = new DOMParser();
-        let doc = parser.parseFromString(html, 'text/html');
-        doc = cleanDocument(doc);
+        const cleanUrl = url.replace(/^https?:\\/\\//, '');
+        const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
 
-        const ogTag = doc.querySelector('meta[property="og:image"], meta[name="og:image"]');
-        if (ogTag?.content) {
-          ogImage.src = ogTag.content;
-          ogImage.style.display = 'block';
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
         }
 
-        let main = doc.querySelector('article, main, .post-content, .entry-content') || doc.body;
-        const paragraphs = [...main.querySelectorAll('p')]
-          .map(p => p.innerText.trim())
-          .filter(t => t.length > 40 && !/read more|pročitaj više/i.test(t))
-          .join('
+        let text = await response.text();
 
-');
+        text = text
+          .replace(/Advertisement/gi, '')
+          .replace(/Read more/gi, '')
+          .replace(/Pročitaj više/gi, '')
+          .replace(/Related articles[\\s\\S]*/gi, '')
+          .replace(/Recommended[\\s\\S]*/gi, '')
+          .trim();
 
-        output.innerText = paragraphs || 'Nije pronađen čist tekst.';
-        copyText(true);
-        status.innerText = 'Tekst očišćen i automatski kopiran.';
+        output.innerText = text;
+        await navigator.clipboard.writeText(text);
+        status.innerText = 'Tekst učitan i kopiran.';
       } catch (error) {
-        output.innerText = 'Greška: ' + error.message;
-        status.innerText = 'Neuspješno učitavanje.';
+        output.innerText = 'Greška pri učitavanju: ' + error.message;
+        status.innerText = 'Stranica možda blokira pristup.';
       }
     }
 
-    function copyText(silent = false) {
+    function copyText() {
       const text = document.getElementById('output').innerText;
       if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        if (!silent) document.getElementById('status').innerText = 'Tekst kopiran u clipboard.';
-      });
+      navigator.clipboard.writeText(text);
+      document.getElementById('status').innerText = 'Tekst kopiran u clipboard.';
     }
   </script>
 </body>
