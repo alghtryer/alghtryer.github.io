@@ -3,129 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Napredni čistač web članka</title>
+  <title>Čistač web članka</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 1000px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
     .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     input, button { padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; }
-    input { width: 68%; }
+    input { width: 70%; }
     button { cursor: pointer; margin-left: 8px; }
-    img { max-width: 100%; border-radius: 12px; margin: 20px 0; }
-    #output { margin-top: 20px; line-height: 1.7; white-space: pre-wrap; }
-    .actions { margin-top: 12px; }
-    .status { color: #666; font-size: 14px; margin-top: 10px; }
+    img { max-width: 100%; border-radius: 12px; margin: 15px 0; }
+    #resultBox { display:none; margin-top:20px; }
+    .box { border:1px solid #ddd; border-radius:12px; padding:16px; background:#fafafa; }
+    #output { white-space: pre-wrap; line-height:1.6; }
+    .status { color:#666; font-size:14px; margin-top:10px; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Napredni čistač teksta sa web stranice!</h1>
-    <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
-    <button onclick="extractContent()">Učitaj</button>
-    
-    <div class="status" id="status">Više API fallback servisa za bolju dostupnost.</div>
-    <div id="result" style="display:none; margin-top:20px;">
-      <div style="border:1px solid #ddd; border-radius:12px; padding:16px; background:#fafafa;">
-      <h2 id="articleTitle" style="margin-top:20px;"></h2>
-      <button onclick="copyTitle()">Kopiraj naslov</button>
-      <button onclick="copyText()">Kopiraj tekst</button>
+
+<div class="card">
+  <h2>Čistač web članka</h2>
+
+  <input type="text" id="urlInput" placeholder="Zalijepi URL ovdje" />
+  <button onclick="extractContent()">Učitaj</button>
+
+  <div class="status" id="status">Spreman za učitavanje</div>
+
+  <div id="resultBox">
+    <div class="box">
       <img id="ogImage" style="display:none;" />
-      <div id="output">        <div style="margin-top:12px;">
-          <button onclick="copyText()">Kopiraj tekst</button>
-        </div>
+      <div id="output"></div>
+      <div style="margin-top:12px;">
+        <button onclick="copyText()">Kopiraj tekst</button>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    async function extractContent() {
-      const url = document.getElementById('urlInput').value.trim();
-      const output = document.getElementById('output');
-      const articleTitle = document.getElementById('articleTitle');
-      const ogImage = document.getElementById('ogImage');
-      const status = document.getElementById('status');
+<script>
+async function extractContent() {
+  const url = document.getElementById('urlInput').value.trim();
+  const output = document.getElementById('output');
+  const status = document.getElementById('status');
+  const resultBox = document.getElementById('resultBox');
+  const ogImage = document.getElementById('ogImage');
 
-      if (!url) {
-        status.innerText = 'Unesi URL link.';
-        return;
-      }
+  if (!url) {
+    status.innerText = 'Unesi URL';
+    return;
+  }
 
-      document.getElementById('result').style.display = 'none';
-      output.innerText = 'Učitavanje...';
-      ogImage.style.display = 'none';
-      status.innerText = 'Učitavam članak...';
+  status.innerText = 'Učitavanje...';
+  resultBox.style.display = 'none';
+  ogImage.style.display = 'none';
+  output.innerText = '';
 
-      try {
-        // Sigurno uklanjanje http/https bez regex-a
-        let cleanUrl = url;
-        if (cleanUrl.startsWith('https://')) {
-          cleanUrl = cleanUrl.slice(8);
-        } else if (cleanUrl.startsWith('http://')) {
-          cleanUrl = cleanUrl.slice(7);
-        }
+  try {
+    let cleanUrl = url.replace('https://','').replace('http://','');
+    const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
 
-        const apiUrl = 'https://r.jina.ai/http://' + cleanUrl;
-        const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
 
-        if (!response.ok) {
-          throw new Error('HTTP ' + response.status);
-        }
+    let text = await response.text();
 
-        let text = await response.text();
+    const remove = ['Advertisement','Read more','Pročitaj više','Related','Recommended'];
+    remove.forEach(r => text = text.split(r).join(''));
 
-        // pokušaj izdvajanja naslova i OG slike iz odgovora
-        const lines = text.split('
-').filter(Boolean);
-        articleTitle.innerText = lines.length ? lines[0].trim() : 'Naslov nije pronađen';
+    output.innerText = text;
 
-        const imgMatch = text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|webp)/i);
-        if (imgMatch) {
-          ogImage.src = imgMatch[0];
-          ogImage.style.display = 'block';
-        }
-
-        // Čišćenje nepotrebnog sadržaja bez problematičnih regex flagova
-        const removePhrases = [
-          'Advertisement',
-          'Read more',
-          'Pročitaj više',
-          'Related articles',
-          'Recommended'
-        ];
-
-        removePhrases.forEach(phrase => {
-          text = text.split(phrase).join('');
-        });
-
-        text = text.trim();
-
-        output.innerText = text || 'Nema pronađenog teksta.';
-        document.getElementById('result').style.display = 'block';
-
-        try {
-          await navigator.clipboard.writeText(text);
-          status.innerText = 'Tekst učitan i kopiran.';
-        } catch (e) {
-          status.innerText = 'Tekst učitan.';
-        }
-      } catch (error) {
-        output.innerText = 'Greška pri učitavanju: ' + error.message;
-        status.innerText = 'Greška pri učitavanju stranice.';
-      }
+    const imgMatch = text.match(/https?:\/\/[^\s]+\.(jpg|png|jpeg|webp)/i);
+    if (imgMatch) {
+      ogImage.src = imgMatch[0];
+      ogImage.style.display = 'block';
     }
 
-    function copyTitle() {
-      const title = document.getElementById('articleTitle').innerText;
-      if (!title) return;
-      navigator.clipboard.writeText(title);
-      document.getElementById('status').innerText = 'Naslov kopiran.';
-    }
+    resultBox.style.display = 'block';
+    status.innerText = 'Učitano';
 
-    function copyText() {
-      const text = document.getElementById('output').innerText;
-      if (!text) return;
-      navigator.clipboard.writeText(text);
-      document.getElementById('status').innerText = 'Tekst kopiran u clipboard.';
-    }
-  </script>
+  } catch (e) {
+    status.innerText = 'Greška: ' + e.message;
+  }
+}
+
+function copyText() {
+  const text = document.getElementById('output').innerText;
+  navigator.clipboard.writeText(text);
+  document.getElementById('status').innerText = 'Kopirano';
+}
+</script>
+
 </body>
 </html>
