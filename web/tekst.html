@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>URL Text & OG Extractor!</title>
+<title>URL Text & OG Extractor</title>
 
 <style>
 body{font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px;background:#f5f5f5}
@@ -18,7 +18,7 @@ button{cursor:pointer;font-weight:bold}
 <body>
 
 <div class="card">
-<h2>URL Extractor (Text + OG Title + OG Image)</h2>
+<h2>URL Extractor (MGID + Verdana)</h2>
 
 <label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
 <label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
@@ -66,18 +66,14 @@ throw "FETCH FAIL";
 }
 
 // ========================
-// CLEAN CONTENT (FIXED RELATED ISSUE)
+// CLEAN CONTENT (NO BREAK ON RELATED)
 // ========================
 function cleanContent(container){
 
-// ukloni skripte, reklame itd.
 container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
 
-// ukloni RELATED blok, ali NE cijeli tekst
-const all = container.querySelectorAll('*');
-
-all.forEach(el=>{
-  const txt = (el.innerText || '').toLowerCase();
+container.querySelectorAll('*').forEach(el=>{
+  const txt=(el.innerText||'').toLowerCase();
 
   if(
     txt.includes('related') ||
@@ -91,12 +87,70 @@ all.forEach(el=>{
   }
 });
 
-return container.innerHTML.trim();
+return container.innerText.trim();
 }
+
+// ========================
+// MGID HTML BUILDER
+// ========================
+function textToHTMLWithAds(text){
+
+const paragraphs=text.split(/\n+/).filter(p=>p.trim());
+
+const total=paragraphs.length;
+
+const ad1=`
+<!-- MGID New Composite Start -->  
+<div data-type="_mgwidget" data-widget-id="1113798"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID New Composite End -->
+`;
+
+const ad2=`
+<!-- MGID New Composite Start 2--> 
+<div data-type="_mgwidget" data-widget-id="1674325"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID New Composite End 2-->
+`;
+
+const ad3=`
+<!-- MGID Widget_For_Long_Text--> 
+<div data-type="_mgwidget" data-widget-id="1689711"></div>
+<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");</script>
+<!-- MGID Widget_For_Long_Text-->
+`;
+
+let html=`<div style="font-family:Verdana; font-size:16px; line-height:1.6;">`;
+
+paragraphs.forEach((p,i)=>{
+
+html+=`<p>${p}</p>`;
+
+const progress=i/total;
+
+if(progress>=0.25 && !html.includes("MGID1")){
+html+=`<div id="MGID1">${ad1}</div>`;
+}
+
+if(progress>=0.5 && !html.includes("MGID2")){
+html+=`<div id="MGID2">${ad2}</div>`;
+}
+
+if(progress>=0.75 && !html.includes("MGID3")){
+html+=`<div id="MGID3">${ad3}</div>`;
+}
+
+});
+
+html+=`</div>`;
+
+return html;
+}
+
+// ========================
 
 let postCounter=0;
 
-// mode switch
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
 r.addEventListener("change",()=>{
 urlInput.style.display=r.value==="manual"?"block":"none";
@@ -123,27 +177,7 @@ if(mode==="auto"){
 const count=parseInt(countInput.value);
 if(!count) return alert("Unesi broj tekstova");
 
-try{
-
-let html;
-
-try{
-html=await fetchHTML("https://www.zanimljivosti.xyz/");
-}catch(e){
-html=await fetchHTML("https://www.zanimljivosti.xyz/feeds/posts/default?alt=json");
-
-const j=JSON.parse(html);
-
-let links=j.feed.entry.map(p=>p.link.find(l=>l.rel==="alternate").href);
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
-
-return;
-}
-
+const html=await fetchHTML("https://www.zanimljivosti.xyz/");
 const doc=new DOMParser().parseFromString(html,'text/html');
 
 let links=[...doc.querySelectorAll('a')]
@@ -157,15 +191,11 @@ for(let link of links){
 await processSingle(link);
 }
 
-}catch(e){
-alert("Ne mogu učitati blog trenutno");
-}
-
 }
 }
 
 // ========================
-// SINGLE POST
+// PROCESS SINGLE
 // ========================
 async function processSingle(url){
 
@@ -187,6 +217,8 @@ const container=document.createElement('div');
 container.innerHTML=contentDiv.innerHTML;
 
 finalHTML = cleanContent(container);
+
+finalHTML = textToHTMLWithAds(finalHTML);
 
 }
 else{
@@ -213,7 +245,7 @@ box.innerHTML=`
 ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 ${ogImage?`<button class='copyBtn' onclick="copyRaw('${ogImage}')">Copy image URL</button>`:''}
 
-<span class='label'>Preview (clean text):</span>
+<span class='label'>Preview (Verdana + MGID):</span>
 <div class='preview' id='${previewID}'>${finalHTML}</div>
 <button class='copyBtn' onclick="copyHTML('${previewID}')">Copy tekst</button>
 
