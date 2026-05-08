@@ -52,12 +52,27 @@ function replaceAds(){
     '<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
     '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
     '<!-- MGID Widget_For_Long_Text-->';
+  
+  var ads4 = preText +
+    '<div data-type="_mgwidget" data-widget-id="2008634"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+  
+  var ads5 = preText +
+    '<div data-type="_mgwidget" data-widget-id="2008641"></div>\n'
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+  
+  var ads6 = preText +
+    '<div data-type="_mgwidget" data-widget-id="2008645"></div>\n'
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
   // zamjena
   html = html.split("ADS1").join(ads1);
   html = html.split("ADS2").join(ads2);
   html = html.split("ADS3").join(ads3);
-
+  html = html.split("ADS4").join(ads4);
+  html = html.split("ADS5").join(ads5);
+  html = html.split("ADS6").join(ads6);
+  
   document.getElementById("outputHtml").value = html;
 }
 
