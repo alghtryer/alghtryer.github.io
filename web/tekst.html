@@ -133,34 +133,54 @@ return container.innerText || "";
 }
 
 // ========================
-// BLOGGER HTML BUILDER (BR ONLY)
+// BLOGGER HTML BUILDER (ADS LOGIC)
 // ========================
 function buildBloggerHTML(text){
 
-let lines=text
+let lines = text
 .replace(/\r/g,"")
 .split("\n")
-.map(t=>t.trim())
-.filter(t=>t.length>0);
+.map(t => t.trim())
+.filter(t => t.length > 0);
 
-// pozicije reklama
-const total=lines.length;
+// broj riječi
+let wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
 
-const ad1=Math.floor(total*0.25);
-const ad2=Math.floor(total*0.50);
-const ad3=Math.floor(total*0.75);
+// osnovne reklame
+const ads = [
+"ADS1",
+"ADS2",
+"ADS3"
+];
 
-// reklame (čisti tekst)
-const ads1="ADS1";
-const ads2="ADS2";
-const ads3="ADS3";
+// dodatne ako je tekst > 400 riječi
+if(wordCount > 400){
+ads.push("ADS4");
+ads.push("ADS5");
+ads.push("ADS6");
+}
+
+// pozicije
+const total = lines.length;
+
+let positions = [
+Math.floor(total * 0.25), // ADS1
+Math.floor(total * 0.50), // ADS2
+Math.floor(total * 0.75)  // ADS3
+];
+
+if(ads.length > 3){
+positions.push(Math.floor(total * 0.35)); // ADS4
+positions.push(Math.floor(total * 0.65)); // ADS5
+positions.push(Math.floor(total * 0.85)); // ADS6
+}
 
 // ubaci reklame
-lines.splice(ad1,0,ads1);
-lines.splice(ad2+1,0,ads2);
-lines.splice(ad3+2,0,ads3);
+ads.forEach((ad, i) => {
+const pos = positions[i] !== undefined ? positions[i] : lines.length;
+lines.splice(pos + i, 0, ad);
+});
 
-// final HTML
 return `
 <div style="font-family:Verdana;">
 ${lines.join("<br><br>")}
@@ -270,7 +290,6 @@ ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 result.appendChild(box);
 }
 
-// ========================
 function copyHTML(id){
 const el=document.getElementById(id);
 navigator.clipboard.writeText(el.innerHTML);
