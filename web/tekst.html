@@ -92,7 +92,7 @@ async function fetchHTML(url){
 const proxies=[
 u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
 u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-u=>`https://thingproxy.freeboard.io/fetch/${u}`
+u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`
 ];
 
 for(const p of proxies){
