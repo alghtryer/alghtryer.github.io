@@ -89,10 +89,29 @@ margin-top:10px
 // ========================
 async function fetchHTML(url){
 
-const proxies=[
-u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`
+const proxies = [
+
+    // 1
+    u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`,
+
+    // 2
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+
+    // 3
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+    // 4
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+    // 5
+    u => `https://cors.isomorphic-git.org/${u}`,
+
+    // 6
+    u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+
+    // 7
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`
+
 ];
 
 for(const p of proxies){
