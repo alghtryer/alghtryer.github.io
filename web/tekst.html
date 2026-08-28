@@ -91,23 +91,59 @@ async function fetchHTML(url){
 
 const proxies = [ 
     
-    // 1 — Corsfix u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`, 
-    // 2 — CorsProxy.io u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`, 
-    // 3 — AllOrigins RAW u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 
-    // 4 — AllOrigins JSON u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 
-    // 5 — CORS.SH u => `https://proxy.cors.sh/${u}`, 
-    // 6 — CORS Anywhere u => `https://cors-anywhere.com/${u}`, 
-    // 7 — Cloudflare CORS Anywhere u => `https://test.cors.workers.dev/?${encodeURIComponent(u)}`, 
-    // 8 — CORS X2U u => `https://cors.x2u.in/${u}`, // 9 — TheBugging u => `https://www.thebugging.com/apis/cors-proxy/${u}`, 
-    // 10 — ThingProxy u => `https://thingproxy.freeboard.io/fetch/${u}`, 
-    // 11 — CORS.eu.org u => `https://cors.eu.org/${u}`, 
-    // 12 — Isomorphic Git u => `https://cors.isomorphic-git.org/${u}`, 
-    // 13 — CodeTabs u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 
-    // 14 — CORSProxy.org u => `https://corsproxy.org/?${encodeURIComponent(u)}`, 
-    // 15 — CORS.lol u => `https://api.cors.lol/?url=${encodeURIComponent(u)}`, 
-    // 16 — Proxy.corsfix alternate format u => `https://proxy.corsfix.com/?${encodeURIComponent(u)}`, 
-    // 17 — AllOrigins alternate u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 
-    // 18 — CorsProxy alternate u => `https://corsproxy.io/?${encodeURIComponent(u)}` 
+   // 1 — Corsfix
+        async u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`,
+
+        // 2 — CorsProxy.io
+        async u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+
+        // 3 — AllOrigins RAW
+        async u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+        // 4 — AllOrigins JSON
+        async u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+
+        // 5 — CORS.SH
+        async u => `https://proxy.cors.sh/${u}`,
+
+        // 6 — CORS Anywhere
+        async u => `https://cors-anywhere.com/${u}`,
+
+        // 7 — Cloudflare CORS Worker
+        async u => `https://test.cors.workers.dev/?${encodeURIComponent(u)}`,
+
+        // 8 — CORS X2U
+        async u => `https://cors.x2u.in/${u}`,
+
+        // 9 — TheBugging
+        async u => `https://www.thebugging.com/apis/cors-proxy/${u}`,
+
+        // 10 — ThingProxy
+        async u => `https://thingproxy.freeboard.io/fetch/${u}`,
+
+        // 11 — CORS.eu.org
+        async u => `https://cors.eu.org/${u}`,
+
+        // 12 — Isomorphic Git
+        async u => `https://cors.isomorphic-git.org/${u}`,
+
+        // 13 — CodeTabs
+        async u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+        // 14 — CORSProxy.org
+        async u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+
+        // 15 — CORS.lol
+        async u => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
+
+        // 16 — Corsfix alternate
+        async u => `https://proxy.corsfix.com/?${encodeURIComponent(u)}`,
+
+        // 17 — AllOrigins duplicate/alternate
+        async u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+        // 18 — CorsProxy alternate
+        async u => `https://corsproxy.io/?${encodeURIComponent(u)}`
     
 ];
 
