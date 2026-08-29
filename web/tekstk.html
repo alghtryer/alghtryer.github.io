@@ -1,0 +1,1283 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Text & OG Extractor PRO - Stil Kurir</title>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+max-width:900px;
+margin:auto;
+padding:20px;
+background:#f5f5f5
+}
+
+.card{
+background:#fff;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-top:20px
+}
+
+input,button{
+width:100%;
+padding:12px;
+margin-top:10px;
+font-size:16px;
+border-radius:8px;
+border:1px solid #ccc
+}
+
+button{
+cursor:pointer;
+font-weight:bold
+}
+
+.label{
+font-weight:bold;
+margin-top:15px;
+display:block
+}
+
+.preview{
+border:1px solid #ddd;
+padding:15px;
+border-radius:8px;
+margin-top:10px;
+line-height:1.6;
+background:#fff;
+white-space:normal
+}
+
+.copyBtn{
+background:#111;
+color:#fff;
+border:none;
+margin-top:8px
+}
+
+textarea{
+width:100%;
+height:200px;
+margin-top:10px
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Stil Kurir URL Extractor PRO</h2>
+
+<label>
+<input type="radio" name="mode" value="manual" checked>
+Manual URL
+</label>
+
+<label>
+<input type="radio" name="mode" value="auto">
+Auto – stil.kurir.rs
+</label>
+
+<input id="urlInput" placeholder="Zalijepi Stil Kurir URL...">
+
+<input 
+id="countInput" 
+type="number" 
+placeholder="Broj tekstova (npr. 5)" 
+style="display:none"
+>
+
+<button onclick="loadData()">Učitaj sadržaj</button>
+
+<div id="result"></div>
+</div>
+
+<script>
+
+// ======================================================
+// FETCH
+// ======================================================
+
+async function fetchHTML(url){
+
+const proxies = [
+
+    // 1
+    u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`,
+
+    // 2
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+
+    // 3
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+    // 4
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+    // 5
+    u => `https://cors.isomorphic-git.org/${u}`,
+
+    // 6
+    u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+
+    // 7
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+
+    // 8
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+
+    // 9
+    u => `https://cors-anywhere.herokuapp.com/${u}`,
+
+    // 10
+    u => `https://cors.eu.org/${u}`,
+
+    // 11
+    u => `https://proxy.cors.sh/${u}`,
+
+    // 12
+    u => `https://test.cors.workers.dev/?${u}`,
+
+    // 13
+    u => `https://corsproxy.github.io/?${encodeURIComponent(u)}`,
+
+    // 14
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+    // 15
+    u => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(u)}`,
+
+    // 16
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+
+    // 17
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+    // 18
+    u => `https://cors-anywhere.azm.workers.dev/${u}`,
+
+    // 19
+    u => `https://proxy.corsfix.com/?${encodeURIComponent(u)}`,
+
+    // 20
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
+];
+
+for(const p of proxies){
+
+try{
+
+const r = await fetch(
+p(url),
+{
+cache:"no-store"
+}
+);
+
+const t = await r.text();
+
+if(
+t &&
+t.length > 800 &&
+(
+t.includes("stil.kurir.rs") ||
+t.includes("<html") ||
+t.includes("<HTML")
+)
+){
+return t;
+}
+
+}catch(e){}
+
+}
+
+throw "FETCH FAIL";
+}
+
+
+// ======================================================
+// STIL KURIR CONTENT EXTRACTOR
+// ======================================================
+
+function extractStilArticle(doc){
+
+/*
+==========================================================
+1. UKLONI ELEMENTE KOJI NISU DIO ČLANKA
+==========================================================
+*/
+
+const removeSelectors = [
+
+"script",
+"style",
+"iframe",
+"noscript",
+"svg",
+
+"header",
+"footer",
+"nav",
+
+".comments",
+".comment",
+".comments-section",
+".comment-section",
+
+".related",
+".related-news",
+".related-articles",
+
+".recommended",
+".recommended-articles",
+
+".latest",
+".najnovije",
+".najcitanije",
+
+".social",
+".social-share",
+".share",
+
+".advertisement",
+".advert",
+".ads",
+".adsbygoogle",
+
+".newsletter",
+".newsletter-box",
+
+".tags",
+".tag-list",
+
+".breadcrumbs",
+
+".prev-next",
+".previous-next",
+
+".author",
+".article-author",
+
+".google-news",
+
+".cookie",
+".popup"
+];
+
+doc.querySelectorAll(removeSelectors.join(","))
+.forEach(el => el.remove());
+
+
+/*
+==========================================================
+2. PRONAĐI GLAVNI SADRŽAJ
+==========================================================
+*/
+
+/*
+Stil/Kurir mijenja HTML strukturu kroz vrijeme,
+zato koristimo više mogućih selektora.
+*/
+
+const selectors = [
+
+"[itemprop='articleBody']",
+
+"article [itemprop='articleBody']",
+
+"article",
+
+".article-body",
+
+".article-content",
+
+".article-text",
+
+".story-body",
+
+".story-content",
+
+".post-content",
+
+".entry-content",
+
+"main article",
+
+"main"
+
+];
+
+let content = null;
+
+for(const selector of selectors){
+
+const el = doc.querySelector(selector);
+
+if(
+el &&
+(el.innerText || "").trim().length > 200
+){
+
+content = el;
+break;
+
+}
+
+}
+
+
+/*
+==========================================================
+3. AKO JE PRONAĐEN GLAVNI SADRŽAJ
+==========================================================
+*/
+
+if(content){
+
+const container = document.createElement("div");
+
+container.innerHTML = content.innerHTML;
+
+
+/*
+Ukloni neželjene elemente iz samog članka
+*/
+
+container.querySelectorAll(
+`
+script,
+style,
+iframe,
+noscript,
+svg,
+form,
+button,
+input,
+.ads,
+.ad,
+.advert,
+.advertisement,
+.adsbygoogle,
+.related,
+.recommended,
+.comments,
+.comment,
+.social-share,
+.share,
+.tags,
+.tag-list,
+.prev-next,
+.previous-next
+`
+).forEach(el => el.remove());
+
+
+/*
+==========================================================
+4. UKLONI "PRENOSIO", "OBJAVLJENO", KOMENTARE itd.
+==========================================================
+*/
+
+const unwantedTexts = [
+
+"prenosi:",
+
+"objavljeno",
+
+"komentariši",
+
+"komentari",
+
+"pratite stil",
+
+"budi deo stil zajednice",
+
+"prethodna vest",
+
+"sledeća vest",
+
+"povezane vesti",
+
+"ostale vesti iz rubrike",
+
+"najnovije",
+
+"najčitanije",
+
+"facebook",
+
+"instagram",
+
+"tiktok",
+
+"google news",
+
+"tagovi"
+
+];
+
+
+container.querySelectorAll("*").forEach(el => {
+
+const txt = (el.innerText || "")
+.trim()
+.toLowerCase();
+
+if(!txt) return;
+
+
+/*
+Ne uklanjamo velike elemente samo zato
+što sadrže neku riječ.
+
+Uklanjamo manje blokove.
+*/
+
+if(
+txt.length < 500 &&
+unwantedTexts.some(x => txt === x || txt.startsWith(x))
+){
+
+el.remove();
+
+}
+
+});
+
+
+/*
+==========================================================
+5. OČISTI PRAZNE ELEMENTE
+==========================================================
+*/
+
+container.querySelectorAll("*").forEach(el => {
+
+if(
+!el.innerText.trim() &&
+!el.querySelector("img")
+){
+
+el.remove();
+
+}
+
+});
+
+
+/*
+==========================================================
+6. VRATI HTML
+==========================================================
+*/
+
+return container;
+
+}
+
+
+/*
+==========================================================
+7. FALLBACK
+==========================================================
+*/
+
+/*
+Ako selector ne pronađe članak,
+pokušavamo pronaći najveći tekstualni blok.
+*/
+
+const candidates = [
+...doc.querySelectorAll("div,section,article,main")
+];
+
+let best = null;
+let bestLength = 0;
+
+for(const el of candidates){
+
+const text = (el.innerText || "").trim();
+
+if(text.length > bestLength){
+
+/*
+Ne želimo cijelu stranicu.
+*/
+
+if(
+text.length < 50000 &&
+!text.toLowerCase().includes("najnovije najčitanije")
+){
+
+best = el;
+bestLength = text.length;
+
+}
+
+}
+
+}
+
+if(best){
+
+const container = document.createElement("div");
+
+container.innerHTML = best.innerHTML;
+
+return container;
+
+}
+
+return null;
+
+}
+
+
+// ======================================================
+// CLEAN CONTENT
+// ======================================================
+
+function cleanContent(container){
+
+/*
+Uklanjamo sve što sigurno nije tekst članka.
+*/
+
+container.querySelectorAll(`
+script,
+style,
+iframe,
+noscript,
+svg,
+form,
+button,
+input,
+textarea,
+select,
+.adsbygoogle,
+.ad,
+.ads,
+.advert,
+.advertisement,
+.related,
+.recommended,
+.comments,
+.comment,
+.social-share,
+.share,
+.tags,
+.tag-list,
+.prev-next,
+.previous-next
+`).forEach(e => e.remove());
+
+
+/*
+Uklanjanje nepotrebnih slika.
+Ostavljamo slike članka.
+*/
+
+container.querySelectorAll("img").forEach(img => {
+
+const src =
+img.getAttribute("src") ||
+img.getAttribute("data-src") ||
+"";
+
+if(!src){
+
+img.remove();
+
+}
+
+});
+
+
+/*
+==========================================================
+PRETVARANJE TEKSTA
+==========================================================
+*/
+
+let blocks = [];
+
+
+/*
+H1/H2/H3/H4
+*/
+
+container.querySelectorAll(
+"h1,h2,h3,h4,h5,h6"
+).forEach(el => {
+
+const txt = el.innerText.trim();
+
+if(txt){
+
+blocks.push(txt);
+
+}
+
+});
+
+
+/*
+Paragrafi
+*/
+
+container.querySelectorAll("p").forEach(el => {
+
+const txt = el.innerText.trim();
+
+if(
+txt &&
+txt.length > 10
+){
+
+blocks.push(txt);
+
+}
+
+});
+
+
+/*
+Ako nema dovoljno paragrafova,
+uzimamo tekst iz divova/li elemenata.
+*/
+
+if(blocks.length < 2){
+
+container.querySelectorAll("div,li").forEach(el => {
+
+const txt = el.innerText.trim();
+
+if(
+txt.length > 20 &&
+txt.length < 3000
+){
+
+blocks.push(txt);
+
+}
+
+});
+
+}
+
+
+/*
+==========================================================
+UKLONI DUPLIKATE
+==========================================================
+*/
+
+blocks = blocks
+.map(x => x.replace(/\s+/g," ").trim())
+.filter(Boolean);
+
+blocks = [...new Set(blocks)];
+
+
+/*
+==========================================================
+UKLONI NAVIGACIONE REČENICE
+==========================================================
+*/
+
+const bad = [
+
+"komentariši",
+"prethodna vest",
+"sledeća vest",
+"povezane vesti",
+"ostale vesti iz rubrike",
+"pratite stil",
+"budi deo stil zajednice",
+"najnovije",
+"najčitanije",
+"facebook",
+"instagram",
+"tiktok",
+"google news"
+
+];
+
+blocks = blocks.filter(text => {
+
+const lower = text.toLowerCase();
+
+return !bad.some(x =>
+lower === x ||
+lower.startsWith(x + ":")
+);
+
+});
+
+
+return blocks.join("\n\n");
+
+}
+
+
+// ======================================================
+// BLOGGER HTML BUILDER
+// ======================================================
+
+function buildBloggerHTML(text){
+
+let lines = text
+.replace(/\r/g,"")
+.split("\n")
+.map(t => t.trim())
+.filter(t => t.length > 0);
+
+
+// broj riječi
+let wordCount =
+text
+.split(/\s+/)
+.filter(w => w.length > 0)
+.length;
+
+
+// osnovne reklame
+const ads = [
+
+"ADS1",
+"ADS2",
+"ADS3"
+
+];
+
+
+// dodatne reklame
+if(wordCount > 400){
+
+ads.push("ADS4");
+ads.push("ADS5");
+ads.push("ADS6");
+
+}
+
+
+// pozicije
+const total = lines.length;
+
+let positions = [
+
+Math.floor(total * 0.25),
+Math.floor(total * 0.50),
+Math.floor(total * 0.75)
+
+];
+
+
+if(ads.length > 3){
+
+positions.push(
+Math.floor(total * 0.35)
+);
+
+positions.push(
+Math.floor(total * 0.65)
+);
+
+positions.push(
+Math.floor(total * 0.85)
+);
+
+}
+
+
+// ubaci reklame
+ads.forEach((ad,i)=>{
+
+const pos =
+positions[i] !== undefined
+? positions[i]
+: lines.length;
+
+lines.splice(pos+i,0,ad);
+
+});
+
+
+return `
+<div style="font-family:Verdana;">
+${lines.join("<br><br>")}
+</div>
+`;
+
+}
+
+
+let postCounter = 0;
+
+
+// ======================================================
+// MODE SWITCH
+// ======================================================
+
+document
+.querySelectorAll('input[name="mode"]')
+.forEach(r=>{
+
+r.addEventListener("change",()=>{
+
+urlInput.style.display =
+r.value==="manual"
+? "block"
+: "none";
+
+countInput.style.display =
+r.value==="auto"
+? "block"
+: "none";
+
+});
+
+});
+
+
+// ======================================================
+// LOAD DATA
+// ======================================================
+
+async function loadData(){
+
+result.innerHTML="";
+
+const mode =
+document
+.querySelector('input[name="mode"]:checked')
+.value;
+
+
+if(mode==="manual"){
+
+const url =
+urlInput.value.trim();
+
+if(!url){
+
+return alert("Unesi URL");
+
+}
+
+
+/*
+Provjera da je Stil Kurir
+*/
+
+if(
+!url.includes("stil.kurir.rs")
+){
+
+return alert(
+"Unesi URL sa stil.kurir.rs"
+);
+
+}
+
+
+await processSingle(url);
+
+}
+
+
+if(mode==="auto"){
+
+const count =
+parseInt(countInput.value);
+
+if(!count){
+
+return alert(
+"Unesi broj tekstova"
+);
+
+}
+
+
+const html =
+await fetchHTML(
+"https://stil.kurir.rs/"
+);
+
+const doc =
+new DOMParser()
+.parseFromString(
+html,
+"text/html"
+);
+
+
+/*
+==========================================================
+UZMI SAMO STIL.KURIR.RS LINKOVE
+==========================================================
+*/
+
+let links = [
+
+...doc.querySelectorAll("a[href]")
+
+]
+.map(a => {
+
+try{
+
+return new URL(
+a.getAttribute("href"),
+"https://stil.kurir.rs/"
+).href;
+
+}catch(e){
+
+return "";
+
+}
+
+})
+.filter(h =>
+h.startsWith("https://stil.kurir.rs/")
+);
+
+
+/*
+==========================================================
+UKLONI DUPLIKATE
+==========================================================
+*/
+
+links = [
+
+...new Set(
+
+links.map(u =>
+u.replace(/\/$/,"")
+)
+
+)
+
+];
+
+
+/*
+==========================================================
+NE UZIMAJ TAG/KATEGORIJE/RSS
+==========================================================
+*/
+
+links = links.filter(url => {
+
+const lower =
+url.toLowerCase();
+
+if(
+lower.includes("/tag/") ||
+lower.includes("/rss") ||
+lower.includes("/kontakt") ||
+lower.includes("/impressum") ||
+lower.includes("/arhiva") ||
+lower.includes("/politika-privatnosti") ||
+lower.includes("/uslovi-koriscenja")
+){
+
+return false;
+
+}
+
+return true;
+
+});
+
+
+links =
+links.slice(0,count);
+
+
+for(const link of links){
+
+await processSingle(link);
+
+}
+
+}
+
+}
+
+
+// ======================================================
+// SINGLE POST
+// ======================================================
+
+async function processSingle(url){
+
+try{
+
+const html =
+await fetchHTML(url);
+
+const doc =
+new DOMParser()
+.parseFromString(
+html,
+"text/html"
+);
+
+
+// ======================================================
+// OG TITLE
+// ======================================================
+
+const ogTitle =
+doc.querySelector(
+'meta[property="og:title"]'
+)?.content
+||
+doc.querySelector(
+'meta[name="twitter:title"]'
+)?.content
+||
+doc.querySelector("h1")
+?.innerText
+||
+doc.title
+||
+"";
+
+
+// ======================================================
+// OG IMAGE
+// ======================================================
+
+const ogImage =
+doc.querySelector(
+'meta[property="og:image"]'
+)?.content
+||
+doc.querySelector(
+'meta[name="twitter:image"]'
+)?.content
+||
+"";
+
+
+// ======================================================
+// EXTRACT ARTICLE
+// ======================================================
+
+const contentDiv =
+extractStilArticle(doc);
+
+
+let finalHTML = "";
+
+let extractedText = "";
+
+
+if(contentDiv){
+
+extractedText =
+cleanContent(contentDiv);
+
+
+if(extractedText.trim()){
+
+finalHTML =
+buildBloggerHTML(
+extractedText
+);
+
+}else{
+
+finalHTML =
+"Nije pronađen tekst članka";
+
+}
+
+}else{
+
+finalHTML =
+"Nije pronađen tekst članka";
+
+}
+
+
+// ======================================================
+// BOX
+// ======================================================
+
+const box =
+document.createElement("div");
+
+box.className="card";
+
+
+const previewID =
+`preview-${postCounter}`;
+
+postCounter++;
+
+
+box.innerHTML = `
+
+<span class='label'>
+URL:
+</span>
+
+<input
+value="${escapeHTML(url)}"
+>
+
+<span class='label'>
+OG Naslov:
+</span>
+
+<input
+value="${escapeHTML(ogTitle)}"
+>
+
+<span class='label'>
+OG Slika:
+</span>
+
+${
+ogImage
+?
+`<img 
+src="${escapeHTML(ogImage)}"
+style="max-width:100%;margin-top:10px"
+>`
+:
+"Nije pronađena"
+}
+
+
+<span class='label'>
+Preview:
+</span>
+
+<div
+class='preview'
+id='${previewID}'
+>
+${finalHTML}
+</div>
+
+
+<button
+class='copyBtn'
+onclick="copyText(
+'${escapeJS(url)}'
+)"
+>
+Copy URL
+</button>
+
+
+<button
+class='copyBtn'
+onclick="copyHTML(
+'${previewID}'
+)"
+>
+Copy HTML
+</button>
+
+`;
+
+result.appendChild(box);
+
+
+}catch(error){
+
+const box =
+document.createElement("div");
+
+box.className="card";
+
+box.innerHTML = `
+
+<strong>Greška:</strong>
+
+<br><br>
+
+${escapeHTML(
+String(error)
+)}
+
+`;
+
+result.appendChild(box);
+
+}
+
+}
+
+
+// ======================================================
+// ESCAPE HTML
+// ======================================================
+
+function escapeHTML(str){
+
+return String(str)
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+
+// ======================================================
+// ESCAPE JS
+// ======================================================
+
+function escapeJS(str){
+
+return String(str)
+.replace(/\\/g,"\\\\")
+.replace(/'/g,"\\'")
+.replace(/\n/g,"\\n")
+.replace(/\r/g,"\\r");
+
+}
+
+
+// ======================================================
+// COPY
+// ======================================================
+
+function copyText(text){
+
+navigator.clipboard
+.writeText(text);
+
+}
+
+
+function copyHTML(id){
+
+const el =
+document.getElementById(id);
+
+navigator.clipboard
+.writeText(
+el.innerHTML
+);
+
+}
+
+</script>
+
+</body>
+</html>
