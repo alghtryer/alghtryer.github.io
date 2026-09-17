@@ -40,9 +40,65 @@ button{cursor:pointer;font-weight:bold}
 async function fetchHTML(url){
 
 const proxies=[
-u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-u=>`https://thingproxy.freeboard.io/fetch/${u}`
+// 1
+    u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`,
+
+    // 2
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+
+    // 3
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+    // 4
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+    // 5
+    u => `https://cors.isomorphic-git.org/${u}`,
+
+    // 6
+    u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+
+    // 7
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+
+    // 8
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+
+    // 9
+    u => `https://cors-anywhere.herokuapp.com/${u}`,
+
+    // 10
+    u => `https://cors.eu.org/${u}`,
+
+    // 11
+    u => `https://proxy.cors.sh/${u}`,
+
+    // 12
+    u => `https://test.cors.workers.dev/?${u}`,
+
+    // 13
+    u => `https://corsproxy.github.io/?${encodeURIComponent(u)}`,
+
+    // 14
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+
+    // 15
+    u => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(u)}`,
+
+    // 16
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+
+    // 17
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+
+    // 18
+    u => `https://cors-anywhere.azm.workers.dev/${u}`,
+
+    // 19
+    u => `https://proxy.corsfix.com/?${encodeURIComponent(u)}`,
+
+    // 20
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
 ];
 
 for(const p of proxies){
