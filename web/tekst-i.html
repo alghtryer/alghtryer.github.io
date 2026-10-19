@@ -1,0 +1,792 @@
+
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URL Text & OG Extractor PRO</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: #f5f5f5;
+    color: #222;
+}
+
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    margin-top: 20px;
+    overflow-wrap: anywhere;
+}
+
+input, button, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+label.mode {
+    display: block;
+    margin: 12px 0;
+}
+
+button {
+    cursor: pointer;
+    font-weight: bold;
+    background: #eee;
+}
+
+button:disabled {
+    cursor: wait;
+    opacity: .6;
+}
+
+.label {
+    font-weight: bold;
+    margin-top: 15px;
+    display: block;
+}
+
+.preview {
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    line-height: 1.6;
+    background: #fff;
+    overflow-wrap: anywhere;
+}
+
+.copyBtn {
+    background: #111;
+    color: #fff;
+    border: none;
+    margin-top: 8px;
+}
+
+.status {
+    padding: 12px;
+    margin-top: 15px;
+    border-radius: 8px;
+    background: #eee;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.status.error {
+    background: #ffe8e8;
+    color: #900;
+}
+
+.status.success {
+    background: #e6f7e9;
+    color: #155724;
+}
+
+#ogPreview {
+    display: block;
+    max-width: 100%;
+    max-height: 350px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+textarea {
+    min-height: 150px;
+    font-family: monospace;
+}
+
+.hidden {
+    display: none !important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>URL Extractor PRO (Blogger Clean BR + Ads)</h2>
+
+    <label class="mode">
+        <input type="radio" name="mode" value="manual" checked>
+        Manual URL
+    </label>
+
+    <label class="mode">
+        <input type="radio" name="mode" value="auto">
+        Auto – zanimljivosti.xyz
+    </label>
+
+    <input
+        id="urlInput"
+        type="url"
+        placeholder="Zalijepi URL članka..."
+    >
+
+    <input
+        id="countInput"
+        type="number"
+        min="1"
+        max="50"
+        placeholder="Broj tekstova (npr. 5)"
+        class="hidden"
+    >
+
+    <button id="loadButton" onclick="loadData()">
+        Učitaj sadržaj
+    </button>
+
+    <div id="status" class="status">
+        Spremno.
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+"use strict";
+
+// ==========================================
+// ELEMENTI
+// ==========================================
+
+const urlInput = document.getElementById("urlInput");
+const countInput = document.getElementById("countInput");
+const loadButton = document.getElementById("loadButton");
+const result = document.getElementById("result");
+const statusBox = document.getElementById("status");
+
+let postCounter = 0;
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function setStatus(message, type = "") {
+    statusBox.textContent = message;
+    statusBox.className = "status" + (type ? " " + type : "");
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+// ==========================================
+// PROVJERA URL-A
+// ==========================================
+
+function validateURL(value) {
+    try {
+        const url = new URL(value);
+
+        if (!["http:", "https:"].includes(url.protocol)) {
+            throw new Error("Dozvoljeni su samo HTTP i HTTPS URL-ovi.");
+        }
+
+        return url.href;
+    } catch (error) {
+        throw new Error("URL nije ispravan: " + value);
+    }
+}
+
+// ==========================================
+// PROXY SERVISI
+// ==========================================
+
+async function fetchHTML(url) {
+    const targetURL = validateURL(url);
+
+    const proxies = [
+        {
+            name: "AllOrigins",
+            makeURL: u =>
+                "https://api.allorigins.win/raw?url=" +
+                encodeURIComponent(u)
+        },
+        {
+            name: "CorsProxy.io",
+            makeURL: u =>
+                "https://corsproxy.io/?url=" +
+                encodeURIComponent(u)
+        },
+        {
+            name: "CodeTabs",
+            makeURL: u =>
+                "https://api.codetabs.com/v1/proxy?quest=" +
+                encodeURIComponent(u)
+        },
+        {
+            name: "Corsfix",
+            makeURL: u =>
+                "https://proxy.corsfix.com/?url=" +
+                encodeURIComponent(u)
+        }
+    ];
+
+    const errors = [];
+
+    for (const proxy of proxies) {
+        setStatus("Pokušavam dohvat preko: " + proxy.name + "...");
+
+        try {
+            const response = await fetch(proxy.makeURL(targetURL), {
+                method: "GET",
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                errors.push(
+                    proxy.name + ": HTTP " + response.status
+                );
+                continue;
+            }
+
+            let html = await response.text();
+
+            if (!html || html.length < 100) {
+                errors.push(proxy.name + ": prazan odgovor");
+                continue;
+            }
+
+            // Podrška za servise koji vraćaju JSON omotač.
+            try {
+                const data = JSON.parse(html);
+
+                if (typeof data.contents === "string") {
+                    html = data.contents;
+                }
+            } catch (_) {
+                // Odgovor nije JSON; nastavi kao HTML.
+            }
+
+            const doc = new DOMParser().parseFromString(
+                html,
+                "text/html"
+            );
+
+            const title = (doc.title || "").toLowerCase();
+            const bodyText = (
+                doc.body?.innerText ||
+                doc.body?.textContent ||
+                ""
+            ).toLowerCase();
+
+            const fullText = title + " " + bodyText;
+
+            // Prepoznaj odgovore koji nisu traženi članak.
+            const isProxyError =
+                /crossorigin\.me/.test(fullText) ||
+                /access denied/.test(fullText) ||
+                /proxy error/.test(fullText) ||
+                /cloudflare ray id/.test(fullText) ||
+                /failed to fetch/.test(fullText) ||
+                /enable javascript and cookies/.test(fullText);
+
+            if (isProxyError) {
+                errors.push(
+                    proxy.name + ": vraćena stranica greške"
+                );
+                continue;
+            }
+
+            if (!doc.documentElement || !doc.body) {
+                errors.push(proxy.name + ": neispravan HTML");
+                continue;
+            }
+
+            const isHomepage =
+                new URL(targetURL).pathname === "/" ||
+                new URL(targetURL).pathname === "";
+
+            const articleSelector = [
+                ".post-body.entry-content.float-container",
+                ".post-body",
+                ".post-body-container",
+                ".entry-content",
+                "[itemprop='articleBody']",
+                "article"
+            ].join(",");
+
+            const hasArticle = !!doc.querySelector(articleSelector);
+            const hasLinks = doc.querySelectorAll("a[href]").length > 0;
+
+            // Za članak traži tijelo teksta, a za početnu
+            // stranicu dozvoli listu linkova ka člancima.
+            if (hasArticle || (isHomepage && hasLinks)) {
+                setStatus("Uspješan dohvat preko: " + proxy.name, "success");
+                return html;
+            }
+
+            errors.push(
+                proxy.name + ": HTML vraćen, ali sadržaj nije prepoznat"
+            );
+
+        } catch (error) {
+            errors.push(
+                proxy.name + ": " + (error.message || "greška povezivanja")
+            );
+        }
+    }
+
+    throw new Error(
+        "Nijedan proxy nije vratio prepoznatljiv sadržaj.\n\n" +
+        errors.join("\n") +
+        "\n\nAko svi proxy servisi odbiju zahtjev, potreban je vlastiti " +
+        "serverski proxy ili drugi pouzdan izvor sadržaja."
+    );
+}
+
+// ==========================================
+// PRONALAŽENJE TEKSTA ČLANKA
+// ==========================================
+
+function findArticleContent(doc) {
+    const selectors = [
+        ".post-body.entry-content.float-container",
+        ".post-body",
+        ".post-body-container",
+        ".entry-content",
+        "[itemprop='articleBody']",
+        "article"
+    ];
+
+    for (const selector of selectors) {
+        const elements = doc.querySelectorAll(selector);
+
+        for (const element of elements) {
+            const text = (
+                element.innerText ||
+                element.textContent ||
+                ""
+            ).trim();
+
+            if (text.length > 100) {
+                return element;
+            }
+        }
+    }
+
+    return null;
+}
+
+// ==========================================
+// ČIŠĆENJE SADRŽAJA
+// ==========================================
+
+function cleanContent(container) {
+    container.querySelectorAll(
+        "script, style, iframe, ins, .adsbygoogle, " +
+        "noscript, form, button, nav, footer"
+    ).forEach(el => el.remove());
+
+    container.querySelectorAll(
+        ".related-posts, .related-post, .post-recommendations, " +
+        ".popular-posts, .post-share-buttons, .sharing-buttons, " +
+        ".comments, #comments, .comment-form"
+    ).forEach(el => el.remove());
+
+    const headingPattern =
+        /^(related posts?|recommended|you may also like|slični članci|preporučeno)$/i;
+
+    container.querySelectorAll("a, span, p, h2, h3, h4").forEach(el => {
+        const text = (
+            el.innerText ||
+            el.textContent ||
+            ""
+        ).trim();
+
+        // Ukloni samo kratke naslove i oznake.
+        // Ne uklanjaj roditelja koji sadrži cijeli članak.
+        if (
+            text.length < 100 &&
+            headingPattern.test(text)
+        ) {
+            el.remove();
+        }
+    });
+
+    // Ukloni linkove na preporučene članke samo kada
+    // su u poznatim blokovima; obične linkove u tekstu sačuvaj.
+    return container.innerText || container.textContent || "";
+}
+
+// ==========================================
+// BLOGGER HTML + OGLASI
+// ==========================================
+
+function buildBloggerHTML(text) {
+    const lines = text
+        .replace(/\r/g, "")
+        .split(/\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    const wordCount = text
+        .split(/\s+/)
+        .filter(Boolean).length;
+
+    if (!lines.length) {
+        return "<p>Tekst članka je prazan.</p>";
+    }
+
+    const ads = ["ADS1", "ADS2", "ADS3"];
+
+    if (wordCount > 400) {
+        ads.push("ADS4", "ADS5", "ADS6");
+    }
+
+    const total = lines.length;
+
+    const positions = [
+        Math.floor(total * 0.25),
+        Math.floor(total * 0.50),
+        Math.floor(total * 0.75)
+    ];
+
+    if (ads.length > 3) {
+        positions.push(
+            Math.floor(total * 0.35),
+            Math.floor(total * 0.65),
+            Math.floor(total * 0.85)
+        );
+    }
+
+    const insertions = [];
+
+    ads.forEach((ad, i) => {
+        insertions.push({
+            position: positions[i] ?? total,
+            ad
+        });
+    });
+
+    // Ubacuj od kraja da indeksi ostanu stabilni.
+    insertions.sort((a, b) => b.position - a.position);
+
+    const output = [...lines];
+
+    insertions.forEach(item => {
+        const pos = Math.min(
+            Math.max(0, item.position),
+            output.length
+        );
+
+        output.splice(pos, 0, item.ad);
+    });
+
+    return (
+        '<div style="font-family:Verdana;">' +
+        output.map(line => escapeHTML(line)).join("<br><br>") +
+        "</div>"
+    );
+}
+
+// ==========================================
+// MODE SWITCH
+// ==========================================
+
+document.querySelectorAll('input[name="mode"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+        const mode = document.querySelector(
+            'input[name="mode"]:checked'
+        ).value;
+
+        urlInput.classList.toggle("hidden", mode !== "manual");
+        countInput.classList.toggle("hidden", mode !== "auto");
+
+        setStatus("Spremno.");
+    });
+});
+
+// ==========================================
+// UČITAVANJE PODATAKA
+// ==========================================
+
+async function loadData() {
+    result.replaceChildren();
+    postCounter = 0;
+
+    const mode = document.querySelector(
+        'input[name="mode"]:checked'
+    ).value;
+
+    loadButton.disabled = true;
+
+    try {
+        if (mode === "manual") {
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                throw new Error("Unesi URL članka.");
+            }
+
+            await processSingle(validateURL(url));
+        } else {
+            const count = Number.parseInt(countInput.value, 10);
+
+            if (!Number.isInteger(count) || count < 1 || count > 50) {
+                throw new Error("Unesi broj tekstova od 1 do 50.");
+            }
+
+            const homepage = "https://www.zanimljivosti.xyz/";
+            const html = await fetchHTML(homepage);
+            const doc = new DOMParser().parseFromString(
+                html,
+                "text/html"
+            );
+
+            const links = [...doc.querySelectorAll("a[href]")]
+                .map(a => {
+                    try {
+                        return new URL(a.getAttribute("href"), homepage);
+                    } catch (_) {
+                        return null;
+                    }
+                })
+                .filter(u =>
+                    u &&
+                    u.hostname.toLowerCase() === "www.zanimljivosti.xyz" &&
+                    u.pathname !== "/" &&
+                    !u.pathname.startsWith("/search") &&
+                    !u.pathname.startsWith("/p/") &&
+                    !u.pathname.startsWith("/feeds/") &&
+                    !u.pathname.startsWith("/2020/") &&
+                    !u.pathname.startsWith("/2021/") &&
+                    !u.pathname.startsWith("/2022/") &&
+                    !u.pathname.startsWith("/2023/") &&
+                    !u.pathname.startsWith("/2024/") &&
+                    !u.pathname.startsWith("/2025/")
+                )
+                .map(u => u.href.replace(/\/$/, ""));
+
+            const uniqueLinks = [...new Set(links)].slice(0, count);
+
+            if (!uniqueLinks.length) {
+                throw new Error(
+                    "Nisu pronađeni linkovi članaka na početnoj stranici."
+                );
+            }
+
+            for (let i = 0; i < uniqueLinks.length; i++) {
+                setStatus(
+                    `Učitavanje članka ${i + 1} od ${uniqueLinks.length}...`
+                );
+
+                try {
+                    await processSingle(uniqueLinks[i]);
+                } catch (error) {
+                    addErrorCard(
+                        uniqueLinks[i],
+                        error.message || String(error)
+                    );
+                }
+            }
+        }
+
+        setStatus("Obrada završena.", "success");
+
+    } catch (error) {
+        setStatus(
+            error.message || String(error),
+            "error"
+        );
+    } finally {
+        loadButton.disabled = false;
+    }
+}
+
+// ==========================================
+// OBRADA JEDNOG ČLANKA
+// ==========================================
+
+async function processSingle(url) {
+    const html = await fetchHTML(url);
+
+    const doc = new DOMParser().parseFromString(
+        html,
+        "text/html"
+    );
+
+    const ogTitle =
+        doc.querySelector('meta[property="og:title"]')?.content ||
+        doc.querySelector('meta[name="twitter:title"]')?.content ||
+        doc.title ||
+        "";
+
+    const ogImage =
+        doc.querySelector('meta[property="og:image"]')?.content ||
+        doc.querySelector('meta[name="twitter:image"]')?.content ||
+        "";
+
+    const contentDiv = findArticleContent(doc);
+
+    if (!contentDiv) {
+        throw new Error(
+            "Tekst nije pronađen. Proxy je vratio HTML, ali selektori " +
+            "nisu prepoznali tijelo članka."
+        );
+    }
+
+    const container = document.createElement("div");
+    container.innerHTML = contentDiv.innerHTML;
+
+    const cleanedText = cleanContent(container).trim();
+
+    if (cleanedText.length < 50) {
+        throw new Error(
+            "Pronađen je element članka, ali tekst je prazan ili prekratak."
+        );
+    }
+
+    const finalHTML = buildBloggerHTML(cleanedText);
+
+    const box = document.createElement("div");
+    box.className = "card";
+
+    const previewID = "preview-" + postCounter++;
+    const imageID = "image-" + postCounter;
+
+    box.innerHTML = `
+        <span class="label">URL:</span>
+        <input readonly value="${escapeHTML(url)}">
+
+        <span class="label">OG Naslov:</span>
+        <input readonly value="${escapeHTML(ogTitle)}">
+
+        <span class="label">OG Slika:</span>
+        <div id="${imageID}"></div>
+
+        <span class="label">Preview:</span>
+        <div class="preview" id="${previewID}">${finalHTML}</div>
+
+        <button class="copyBtn" type="button" data-action="url">
+            Copy URL
+        </button>
+
+        <button class="copyBtn" type="button" data-action="html">
+            Copy HTML
+        </button>
+
+        <button class="copyBtn" type="button" data-action="text">
+            Copy tekst
+        </button>
+    `;
+
+    if (ogImage) {
+        try {
+            const safeImageURL = new URL(ogImage, url);
+
+            if (["http:", "https:"].includes(safeImageURL.protocol)) {
+                const img = document.createElement("img");
+                img.id = imageID + "-img";
+                img.src = safeImageURL.href;
+                img.alt = ogTitle || "OG slika";
+                img.id = "og-" + imageID;
+                img.style.maxWidth = "100%";
+                img.style.maxHeight = "350px";
+                box.querySelector("#" + CSS.escape(imageID)).appendChild(img);
+            }
+        } catch (_) {}
+    }
+
+    box.querySelector('[data-action="url"]').addEventListener(
+        "click",
+        () => copyText(url)
+    );
+
+    box.querySelector('[data-action="html"]').addEventListener(
+        "click",
+        () => copyText(
+            document.getElementById(previewID).innerHTML
+        )
+    );
+
+    box.querySelector('[data-action="text"]').addEventListener(
+        "click",
+        () => copyText(
+            document.getElementById(previewID).innerText
+        )
+    );
+
+    result.appendChild(box);
+}
+
+// ==========================================
+// KARTICA GREŠKE
+// ==========================================
+
+function addErrorCard(url, message) {
+    const box = document.createElement("div");
+    box.className = "card";
+
+    const title = document.createElement("strong");
+    title.textContent = "Greška pri učitavanju";
+
+    const link = document.createElement("p");
+    link.textContent = url;
+
+    const detail = document.createElement("p");
+    detail.textContent = message;
+
+    box.append(title, link, detail);
+    result.appendChild(box);
+}
+
+// ==========================================
+// KOPIRANJE
+// ==========================================
+
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Sadržaj je kopiran.", "success");
+    } catch (_) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        const success = document.execCommand("copy");
+        textarea.remove();
+
+        if (success) {
+            setStatus("Sadržaj je kopiran.", "success");
+        } else {
+            setStatus(
+                "Kopiranje nije uspjelo. Označi i kopiraj sadržaj ručno.",
+                "error"
+            );
+        }
+    }
+}
+</script>
+
+</body>
+</html>
