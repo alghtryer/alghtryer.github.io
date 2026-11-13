@@ -72,11 +72,7 @@ margin-top:10px
 <div class="card">
 <h2>URL Extractor PRO (Blogger Clean BR + Ads)</h2>
 
-<label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
-<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
-
 <input id="urlInput" placeholder="Zalijepi URL...">
-<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
 
 <button onclick="loadData()">Učitaj sadržaj</button>
 
@@ -163,24 +159,20 @@ let lines = text
 .map(t => t.trim())
 .filter(t => t.length > 0);
 
-// broj riječi
 let wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
 
-// osnovne reklame
 const ads = [
 "ADS1",
 "ADS2",
 "ADS3"
 ];
 
-// dodatne ako je tekst > 400 riječi
 if(wordCount > 400){
 ads.push("ADS4");
 ads.push("ADS5");
 ads.push("ADS6");
 }
 
-// pozicije
 const total = lines.length;
 
 let positions = [
@@ -195,7 +187,6 @@ positions.push(Math.floor(total * 0.65));
 positions.push(Math.floor(total * 0.85));
 }
 
-// ubaci reklame
 ads.forEach((ad, i) => {
 const pos = positions[i] !== undefined ? positions[i] : lines.length;
 lines.splice(pos + i, 0, ad);
@@ -210,48 +201,19 @@ ${lines.join("<br><br>")}
 
 let postCounter=0;
 
-// mode switch
-document.querySelectorAll('input[name="mode"]').forEach(r=>{
-r.addEventListener("change",()=>{
-urlInput.style.display=r.value==="manual"?"block":"none";
-countInput.style.display=r.value==="auto"?"block":"none";
-});
-});
-
 // ========================
 // LOAD DATA
 // ========================
 async function loadData(){
 
 result.innerHTML="";
-const mode=document.querySelector('input[name="mode"]:checked').value;
 
-if(mode==="manual"){
 const url=urlInput.value.trim();
+
 if(!url) return alert("Unesi URL");
+
 await processSingle(url);
-}
 
-if(mode==="auto"){
-
-const count=parseInt(countInput.value);
-if(!count) return alert("Unesi broj tekstova");
-
-const html=await fetchHTML("https://www.zanimljivosti.xyz/");
-const doc=new DOMParser().parseFromString(html,'text/html');
-
-let links=[...doc.querySelectorAll('a')]
-.map(a=>a.href)
-.filter(h=>h.includes("zanimljivosti.xyz"))
-.map(u=>u.replace(/\/$/,''));
-
-links=[...new Set(links)].slice(0,count);
-
-for(let link of links){
-await processSingle(link);
-}
-
-}
 }
 
 // ========================
@@ -262,7 +224,11 @@ async function processSingle(url){
 const html=await fetchHTML(url);
 const doc=new DOMParser().parseFromString(html,'text/html');
 
-const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
+let ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
+
+// UKLANJANJE - Daily News IZ NASLOVA
+ogTitle=ogTitle.replace(/\s*-\s*Daily News\s*/gi,'').trim();
+
 const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
 
 let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
@@ -288,14 +254,14 @@ const box=document.createElement("div");
 box.className="card";
 
 const previewID=`preview-${postCounter}`;
+const titleID=`title-${postCounter}`;
 postCounter++;
 
 box.innerHTML=`
-<span class='label'>URL:</span>
-<input value="${url}">
-
 <span class='label'>OG Naslov:</span>
-<input value="${ogTitle.replace(/"/g,'&quot;')}">
+<input id="${titleID}" value="${ogTitle.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}" readonly>
+
+<button class='copyBtn' onclick="copyTitle('${titleID}')">Copy Naslov</button>
 
 <span class='label'>OG Slika:</span>
 ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
@@ -303,7 +269,6 @@ ${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
 <span class='label'>Preview:</span>
 <div class='preview' id='${previewID}'>${finalHTML}</div>
 
-<button class='copyBtn' onclick="navigator.clipboard.writeText('${url}')">Copy URL</button>
 <button class='copyBtn' onclick="copyHTML('${previewID}')">Copy HTML</button>
 `;
 
@@ -348,7 +313,6 @@ var ads4 = preText +
 '<div data-type="_mgwidget" data-widget-id="2008645"></div>\n' +
 '<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
 
-// zamjena
 html = html.split("ADS1").join(ads1);
 html = html.split("ADS2").join(ads2);
 html = html.split("ADS3").join(ads3);
@@ -361,6 +325,18 @@ return html;
 }
 
 // ========================
+// COPY NASLOV
+// ========================
+
+function copyTitle(id){
+
+const title=document.getElementById(id).value;
+
+navigator.clipboard.writeText(title);
+
+}
+
+// ========================
 // COPY HTML
 // ========================
 
@@ -368,10 +344,8 @@ function copyHTML(id){
 
 const el=document.getElementById(id);
 
-// Uzima originalni HTML i mijenja ADS oznake
 const html=replaceAds(el.innerHTML);
 
-// Kopira kompletan HTML sa MGID reklamama
 navigator.clipboard.writeText(html);
 
 }
