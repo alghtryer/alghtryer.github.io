@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Text & OG Extractor PRO</title>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+max-width:900px;
+margin:auto;
+padding:20px;
+background:#f5f5f5
+}
+
+.card{
+background:#fff;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-top:20px
+}
+
+input,button{
+width:100%;
+padding:12px;
+margin-top:10px;
+font-size:16px;
+border-radius:8px;
+border:1px solid #ccc
+}
+
+button{
+cursor:pointer;
+font-weight:bold
+}
+
+.label{
+font-weight:bold;
+margin-top:15px;
+display:block
+}
+
+.preview{
+border:1px solid #ddd;
+padding:15px;
+border-radius:8px;
+margin-top:10px;
+line-height:1.6;
+background:#fff;
+white-space:normal
+}
+
+.copyBtn{
+background:#111;
+color:#fff;
+border:none;
+margin-top:8px
+}
+
+textarea{
+width:100%;
+height:200px;
+margin-top:10px
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>URL Extractor PRO (Blogger Clean BR + Ads)</h2>
+
+<label><input type="radio" name="mode" value="manual" checked> Manual URL</label>
+<label><input type="radio" name="mode" value="auto"> Auto – zanimljivosti.xyz</label>
+
+<input id="urlInput" placeholder="Zalijepi URL...">
+<input id="countInput" type="number" placeholder="Broj tekstova (npr. 5)" style="display:none">
+
+<button onclick="loadData()">Učitaj sadržaj</button>
+
+<div id="result"></div>
+</div>
+
+<script>
+
+// ========================
+// FETCH
+// ========================
+async function fetchHTML(url){
+
+const proxies = [
+
+    u => `https://proxy.cors.dev/${u}`,
+    u => `https://proxy.corsfix.com/?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://cors.isomorphic-git.org/${u}`,
+    u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://cors-anywhere.herokuapp.com/${u}`,
+    u => `https://cors.eu.org/${u}`,
+    u => `https://proxy.cors.sh/${u}`,
+    u => `https://test.cors.workers.dev/?${u}`,
+    u => `https://corsproxy.github.io/?${encodeURIComponent(u)}`,
+    u => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(u)}`,
+    u => `https://cors-anywhere.azm.workers.dev/${u}`,
+    u => `https://proxy.corsfix.com/?${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+
+];
+
+for(const p of proxies){
+try{
+const r=await fetch(p(url),{cache:"no-store"});
+const t=await r.text();
+if(t && t.length>800) return t;
+}catch(e){}
+}
+
+throw "FETCH FAIL";
+}
+
+// ========================
+// CLEAN CONTENT
+// ========================
+function cleanContent(container){
+
+container.querySelectorAll('script,style,iframe,ins,.adsbygoogle').forEach(e=>e.remove());
+
+const all = container.querySelectorAll('*');
+
+all.forEach(el=>{
+const txt = (el.innerText || '').toLowerCase();
+
+if(
+txt.includes('related') ||
+txt.includes('recommended') ||
+txt.includes('you may also like') ||
+txt.includes('slični') ||
+txt.includes('preporučeno')
+){
+el.remove();
+}
+});
+
+return container.innerText || "";
+}
+
+// ========================
+// BLOGGER HTML BUILDER (ADS LOGIC)
+// ========================
+function buildBloggerHTML(text){
+
+let lines = text
+.replace(/\r/g,"")
+.split("\n")
+.map(t => t.trim())
+.filter(t => t.length > 0);
+
+// broj riječi
+let wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+
+// osnovne reklame
+const ads = [
+"ADS1",
+"ADS2",
+"ADS3"
+];
+
+// dodatne ako je tekst > 400 riječi
+if(wordCount > 400){
+ads.push("ADS4");
+ads.push("ADS5");
+ads.push("ADS6");
+}
+
+// pozicije
+const total = lines.length;
+
+let positions = [
+Math.floor(total * 0.25),
+Math.floor(total * 0.50),
+Math.floor(total * 0.75)
+];
+
+if(ads.length > 3){
+positions.push(Math.floor(total * 0.35));
+positions.push(Math.floor(total * 0.65));
+positions.push(Math.floor(total * 0.85));
+}
+
+// ubaci reklame
+ads.forEach((ad, i) => {
+const pos = positions[i] !== undefined ? positions[i] : lines.length;
+lines.splice(pos + i, 0, ad);
+});
+
+return `
+<div style="font-family:Verdana;">
+${lines.join("<br><br>")}
+</div>
+`;
+}
+
+let postCounter=0;
+
+// mode switch
+document.querySelectorAll('input[name="mode"]').forEach(r=>{
+r.addEventListener("change",()=>{
+urlInput.style.display=r.value==="manual"?"block":"none";
+countInput.style.display=r.value==="auto"?"block":"none";
+});
+});
+
+// ========================
+// LOAD DATA
+// ========================
+async function loadData(){
+
+result.innerHTML="";
+const mode=document.querySelector('input[name="mode"]:checked').value;
+
+if(mode==="manual"){
+const url=urlInput.value.trim();
+if(!url) return alert("Unesi URL");
+await processSingle(url);
+}
+
+if(mode==="auto"){
+
+const count=parseInt(countInput.value);
+if(!count) return alert("Unesi broj tekstova");
+
+const html=await fetchHTML("https://www.zanimljivosti.xyz/");
+const doc=new DOMParser().parseFromString(html,'text/html');
+
+let links=[...doc.querySelectorAll('a')]
+.map(a=>a.href)
+.filter(h=>h.includes("zanimljivosti.xyz"))
+.map(u=>u.replace(/\/$/,''));
+
+links=[...new Set(links)].slice(0,count);
+
+for(let link of links){
+await processSingle(link);
+}
+
+}
+}
+
+// ========================
+// SINGLE POST
+// ========================
+async function processSingle(url){
+
+const html=await fetchHTML(url);
+const doc=new DOMParser().parseFromString(html,'text/html');
+
+const ogTitle=doc.querySelector('meta[property="og:title"]')?.content||doc.title||'';
+const ogImage=doc.querySelector('meta[property="og:image"]')?.content||'';
+
+let contentDiv=doc.querySelector('.post-body.entry-content.float-container')
+||doc.querySelector('.entry-content')
+||doc.querySelector('article');
+
+let finalHTML='';
+
+if(contentDiv){
+
+const container=document.createElement("div");
+container.innerHTML=contentDiv.innerHTML;
+
+const cleaned = cleanContent(container);
+finalHTML = buildBloggerHTML(cleaned);
+
+}
+else{
+finalHTML="Nije pronađen tekst";
+}
+
+const box=document.createElement("div");
+box.className="card";
+
+const previewID=`preview-${postCounter}`;
+postCounter++;
+
+box.innerHTML=`
+<span class='label'>URL:</span>
+<input value="${url}">
+
+<span class='label'>OG Naslov:</span>
+<input value="${ogTitle.replace(/"/g,'&quot;')}">
+
+<span class='label'>OG Slika:</span>
+${ogImage?`<img src="${ogImage}" style="max-width:100%">`:''}
+
+<span class='label'>Preview:</span>
+<div class='preview' id='${previewID}'>${finalHTML}</div>
+
+<button class='copyBtn' onclick="navigator.clipboard.writeText('${url}')">Copy URL</button>
+<button class='copyBtn' onclick="copyHTML('${previewID}')">Copy HTML</button>
+`;
+
+result.appendChild(box);
+}
+
+// ========================
+// MGID ADS ZAMJENA
+// ========================
+
+function replaceAds(html){
+
+var preText = '';
+
+var ads1 = preText +
+'<!-- MGID New Composite Start -->\n' +
+'<div data-type="_mgwidget" data-widget-id="1113798"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+'<!-- MGID New Composite End -->';
+
+var ads2 = preText +
+'<!-- MGID New Composite Start 2-->\n' +
+'<div data-type="_mgwidget" data-widget-id="1674325"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+'<!-- MGID New Composite End 2-->';
+
+var ads3 = preText +
+'<!-- MGID Widget_For_Long_Text-->\n' +
+'<div data-type="_mgwidget" data-widget-id="1689711"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>\n' +
+'<!-- MGID Widget_For_Long_Text-->';
+
+var ads6 = preText +
+'<div data-type="_mgwidget" data-widget-id="2008634"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+var ads5 = preText +
+'<div data-type="_mgwidget" data-widget-id="2008641"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+var ads4 = preText +
+'<div data-type="_mgwidget" data-widget-id="2008645"></div>\n' +
+'<script>(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");<\/script>';
+
+// zamjena
+html = html.split("ADS1").join(ads1);
+html = html.split("ADS2").join(ads2);
+html = html.split("ADS3").join(ads3);
+html = html.split("ADS4").join(ads4);
+html = html.split("ADS5").join(ads5);
+html = html.split("ADS6").join(ads6);
+
+return html;
+
+}
+
+// ========================
+// COPY HTML
+// ========================
+
+function copyHTML(id){
+
+const el=document.getElementById(id);
+
+// Uzima originalni HTML i mijenja ADS oznake
+const html=replaceAds(el.innerHTML);
+
+// Kopira kompletan HTML sa MGID reklamama
+navigator.clipboard.writeText(html);
+
+}
+
+</script>
+
+</body>
+</html>
