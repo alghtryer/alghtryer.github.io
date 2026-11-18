@@ -184,7 +184,6 @@ selectors.forEach(selector=>{
 doc.querySelectorAll(selector).forEach(a=>anchors.add(a));
 });
 
-// Provjera svih linkova ako pagination nema poseban selector
 doc.querySelectorAll('a[href]').forEach(a=>anchors.add(a));
 
 anchors.forEach(a=>{
@@ -234,28 +233,60 @@ return pages;
 
 function cleanContent(container){
 
+// Uklanjanje tehničkih elemenata
 container.querySelectorAll(
 'script,style,iframe,ins,.adsbygoogle'
-).forEach(e=>e.remove());
-
-container.querySelectorAll(
-'.related,.related-posts,.related-post,.recommended,'+
-'.post-navigation,.pagination,.page-links,.share-buttons,'+
-'.social-share,.comments,.comment-form,.advertisement'
 ).forEach(e=>e.remove());
 
 // Uklanjanje nepotrebnih elemenata
 container.querySelectorAll('*').forEach(el=>{
 
-const cls=(el.className || '').toString().toLowerCase();
+const txt=(el.innerText || el.textContent || '')
+.trim()
+.toLowerCase()
+.replace(/\s+/g,' ');
 
+// Uklanjanje Read also
+if(txt === 'read also'){
+el.remove();
+return;
+}
+
+// Uklanjanje Disclaimer
+if(txt === 'disclaimer'){
+el.remove();
+return;
+}
+
+// Uklanjanje teksta o zabavnom sadržaju
 if(
-cls.includes('related') ||
-cls.includes('recommend') ||
-cls.includes('advertisement') ||
-cls.includes('social-share')
+txt.includes(
+'this content is intended for entertainment purposes only and is not based on real events'
+)
 ){
 el.remove();
+return;
+}
+
+// Uklanjanje Previous page navigacije
+if(
+/‹\s*previous page/i.test(txt) ||
+/previous page\s*1\s*2\s*3\s*4\s*5/i.test(txt)
+){
+el.remove();
+return;
+}
+
+// Ostale preporuke
+if(
+txt === 'related' ||
+txt === 'recommended' ||
+txt === 'you may also like' ||
+txt === 'slični' ||
+txt === 'preporučeno'
+){
+el.remove();
+return;
 }
 
 });
@@ -332,7 +363,6 @@ const html=await fetchHTML(currentURL);
 
 const doc=new DOMParser().parseFromString(html,'text/html');
 
-// Naslov i slika samo sa prve stranice
 if(pageNumber===1){
 
 ogTitle=
@@ -371,34 +401,26 @@ new RegExp('^'+titleEscaped+'\\s*','i'),
 
 }
 
-// Čuvanje sadržaja
 pageTexts.push(cleanText);
 
-// Sljedeća stranica
 pageNumber++;
 
 if(pageNumber>5) break;
 
-// Prvo koristi pronađene numerisane linkove
 let nextURL=pageLinks[pageNumber];
 
-// Ako nema numerisanog linka, koristi rel=next
 if(!nextURL && pageNumber===2){
 nextURL=pageLinks[2];
 }
 
 if(!nextURL){
-
-// Nema potvrđenog linka za narednu stranicu
 break;
-
 }
 
 currentURL=nextURL;
 
 }
 
-// Spajanje teksta svih stranica
 const fullText=pageTexts.join("\n\n");
 
 return {
@@ -455,7 +477,6 @@ positions.push(Math.floor(total*0.85));
 
 }
 
-// Sortiranje pozicija da reklame idu redom
 const insertions=ads.map((ad,i)=>({
 ad:ad,
 position:positions[i] ?? total
