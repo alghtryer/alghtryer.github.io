@@ -238,7 +238,28 @@ container.querySelectorAll(
 'script,style,iframe,ins,.adsbygoogle'
 ).forEach(e=>e.remove());
 
-// Uklanjanje nepotrebnih elemenata
+
+// Uklanjanje cijelih Read also i related widgeta
+container.querySelectorAll(
+'.read-also,'+
+'.readalso,'+
+'.read-also-widget,'+
+'.read-also-posts,'+
+'.related-posts,'+
+'.related-post,'+
+'.related,'+
+'.recommended-posts,'+
+'.recommended-post,'+
+'.you-may-also-like,'+
+'.popular-posts,'+
+'[class*="read-also"],'+
+'[id*="read-also"],'+
+'[class*="related-post"],'+
+'[id*="related-post"]'
+).forEach(el=>el.remove());
+
+
+// Uklanjanje ostalih nepotrebnih elemenata
 container.querySelectorAll('*').forEach(el=>{
 
 const txt=(el.innerText || el.textContent || '')
@@ -246,19 +267,19 @@ const txt=(el.innerText || el.textContent || '')
 .toLowerCase()
 .replace(/\s+/g,' ');
 
-// Uklanjanje Read also
+// Read also ako je ostao kao samostalni element
 if(txt === 'read also'){
 el.remove();
 return;
 }
 
-// Uklanjanje Disclaimer
+// Disclaimer naslov
 if(txt === 'disclaimer'){
 el.remove();
 return;
 }
 
-// Uklanjanje teksta o zabavnom sadržaju
+// Tekst o zabavnom sadržaju
 if(
 txt.includes(
 'this content is intended for entertainment purposes only and is not based on real events'
@@ -268,7 +289,7 @@ el.remove();
 return;
 }
 
-// Uklanjanje Previous page navigacije
+// Previous page navigacija
 if(
 /‹\s*previous page/i.test(txt) ||
 /previous page\s*1\s*2\s*3\s*4\s*5/i.test(txt)
@@ -290,6 +311,7 @@ return;
 }
 
 });
+
 
 // Uklanjanje praznih elemenata
 container.querySelectorAll('p,div,span').forEach(el=>{
