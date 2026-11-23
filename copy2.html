@@ -371,7 +371,7 @@ let pageNumber=1;
 let ogTitle="";
 let ogImage="";
 
-while(pageNumber<=5){
+while(pageNumber<=10){
 
 const normalized=normalizeURL(currentURL);
 
@@ -380,7 +380,7 @@ if(visited.has(normalized)) break;
 visited.add(normalized);
 
 status.innerHTML=
-`Preuzimam stranicu ${pageNumber}/5...`;
+`Preuzimam stranicu ${pageNumber}/10...`;
 
 const html=await fetchHTML(currentURL);
 
@@ -428,7 +428,7 @@ pageTexts.push(cleanText);
 
 pageNumber++;
 
-if(pageNumber>5) break;
+if(pageNumber>10) break;
 
 let nextURL=pageLinks[pageNumber];
 
