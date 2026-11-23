@@ -201,18 +201,20 @@ const title=a.getAttribute('title') || '';
 
 const label=(text+' '+aria+' '+title).trim();
 
-if(a.rel==='next' || /^(next|sljedeća|dalje|»|›|→)$/i.test(label)){
-pages[2]=href.href;
-return;
+if(
+a.rel==='next' ||
+/^(next|next page|sljedeća|dalje|»|›|→)$/i.test(label)
+){
+pages.next=href.href;
 }
 
-const match=label.match(/^([1-5])$/);
+const match=label.match(/^([1-9]|10)$/);
 
 if(match){
 
 const number=parseInt(match[1]);
 
-if(number>=2 && number<=5){
+if(number>=2 && number<=10){
 pages[number]=href.href;
 }
 
@@ -239,7 +241,7 @@ container.querySelectorAll(
 ).forEach(e=>e.remove());
 
 
-// Uklanjanje cijelih Read also i related widgeta
+// Uklanjanje Read Also i related widgeta
 container.querySelectorAll(
 '.read-also,'+
 '.readalso,'+
@@ -256,8 +258,63 @@ container.querySelectorAll(
 '[class*="read-also"],'+
 '[id*="read-also"],'+
 '[class*="related-post"],'+
-'[id*="related-post"]'
+'[id*="related-post"],'+
+'.pagination,'+
+'.page-links,'+
+'.post-pagination,'+
+'.pagination-pages,'+
+'.wp-pagenavi,'+
+'.nav-links,'+
+'.pager,'+
+'.pages'
 ).forEach(el=>el.remove());
+
+
+// Uklanjanje navigacijskih linkova
+container.querySelectorAll('a').forEach(a=>{
+
+const txt=(a.innerText || a.textContent || '')
+.trim()
+.toLowerCase()
+.replace(/\s+/g,' ');
+
+if(
+/^(next page|previous page|next|previous|sljedeća|prethodna|dalje|›|»|→|‹)$/i.test(txt) ||
+/continue reading\s*:?\s*page\s*\d+\s*of\s*\d+/i.test(txt)
+){
+a.remove();
+}
+
+});
+
+
+// Uklanjanje malih elemenata paginacije
+container.querySelectorAll('span,small,strong,b,p').forEach(el=>{
+
+const txt=(el.innerText || el.textContent || '')
+.trim()
+.toLowerCase()
+.replace(/\s+/g,' ');
+
+if(
+/continue reading\s*:?\s*page\s*\d+\s*of\s*\d+/i.test(txt) ||
+/^(next page|previous page|next|previous|sljedeća|prethodna|dalje)$/i.test(txt) ||
+/^page\s*\d+\s*of\s*\d+$/i.test(txt)
+){
+el.remove();
+return;
+}
+
+// Uklanjanje samo numeričkih elemenata koji liče na paginaciju
+if(
+/^[0-9\s]+$/.test(txt) &&
+txt.length<30 &&
+el.querySelectorAll('a').length>0
+){
+el.remove();
+}
+
+});
 
 
 // Uklanjanje ostalih nepotrebnih elemenata
@@ -268,37 +325,24 @@ const txt=(el.innerText || el.textContent || '')
 .toLowerCase()
 .replace(/\s+/g,' ');
 
-// Read also ako je ostao kao samostalni element
+// Read also
 if(txt === 'read also'){
 el.remove();
 return;
 }
 
-// Disclaimer naslov
+// Disclaimer
 if(txt === 'disclaimer'){
 el.remove();
 return;
 }
 
-// Tekst o zabavnom sadržaju
-if(
-txt.includes(
+// Zabavni disclaimer
+if(txt.includes(
 'this content is intended for entertainment purposes only and is not based on real events'
-)
-){
+)){
 el.remove();
 return;
-}
-
-// Uklanjanje paginacije i Continue reading
-if(
-    /continue reading\s*:?\s*page\s*\d+\s*of\s*\d+/i.test(txt) ||
-    /next page/i.test(txt) ||
-    /previous page/i.test(txt) ||
-    /page\s*\d+\s*of\s*\d+/i.test(txt)
-){
-    el.remove();
-    return;
 }
 
 // Ostale preporuke
@@ -366,8 +410,6 @@ const visited=new Set();
 
 let currentURL=normalizeURL(startURL);
 
-let pageLinks={};
-
 let pageNumber=1;
 
 let ogTitle="";
@@ -400,8 +442,6 @@ ogTitle=ogTitle.replace(/\s*-\s*Daily News\s*/gi,'').trim();
 ogImage=
 doc.querySelector('meta[property="og:image"]')?.content || '';
 
-pageLinks=findPageLinks(doc,currentURL);
-
 }
 
 const text=extractContent(doc);
@@ -428,16 +468,23 @@ new RegExp('^'+titleEscaped+'\\s*','i'),
 
 pageTexts.push(cleanText);
 
+
+// Pronalazak linkova za sljedeću stranicu
+const pageLinks=findPageLinks(doc,currentURL);
+
 pageNumber++;
 
 if(pageNumber>10) break;
 
+// Prvo pokušaj pronaći numerisanu stranicu
 let nextURL=pageLinks[pageNumber];
 
-if(!nextURL && pageNumber===2){
-nextURL=pageLinks[2];
+// Ako nema numeracije, koristi Next page
+if(!nextURL){
+nextURL=pageLinks.next;
 }
 
+// Ako nema sljedeće stranice, prekini
 if(!nextURL){
 break;
 }
