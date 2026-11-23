@@ -290,13 +290,15 @@ el.remove();
 return;
 }
 
-// Previous page navigacija
+// Uklanjanje paginacije i Continue reading
 if(
-/‹\s*previous page/i.test(txt) ||
-/previous page\s*1\s*2\s*3\s*4\s*5/i.test(txt)
+    /continue reading\s*:?\s*page\s*\d+\s*of\s*\d+/i.test(txt) ||
+    /next page/i.test(txt) ||
+    /previous page/i.test(txt) ||
+    /page\s*\d+\s*of\s*\d+/i.test(txt)
 ){
-el.remove();
-return;
+    el.remove();
+    return;
 }
 
 // Ostale preporuke
