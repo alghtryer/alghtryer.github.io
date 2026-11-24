@@ -3,57 +3,42 @@
 <html lang="bs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Text Copy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML Text Copy</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
-
 body {
     margin: 0;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    padding: 30px 15px;
     font-family: Arial, sans-serif;
     background: #f5f5f5;
 }
 
 .container {
+    max-width: 850px;
+    margin: 0 auto;
     text-align: center;
-    padding: 20px;
 }
 
-.image-box {
-    position: relative;
-    display: inline-block;
-    max-width: 100%;
+textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 15px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: white;
+    color: #333;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    text-align: left;
 }
 
-.image-box img {
-    display: block;
-    max-width: 100%;
-    height: auto;
-}
-
-.image-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    text-shadow: 2px 2px 5px #000;
-}
-
-.copy-btn {
+button {
     margin-top: 15px;
-    padding: 11px 28px;
+    padding: 12px 30px;
     border: none;
     border-radius: 6px;
     background: #222;
@@ -62,10 +47,9 @@ body {
     cursor: pointer;
 }
 
-.copy-btn:hover {
+button:hover {
     background: #444;
 }
-
 </style>
 </head>
 
@@ -73,34 +57,22 @@ body {
 
 <div class="container">
 
-    <div class="image-box">
+<textarea id="htmlText" readonly><div class="separator" style="clear: both; text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhhwVgNaqnfzxZ3uO1zdEFfaxvJXg5c1oMkTRfr0og-WWj9hBRt4MXXZnE2M75PVrsSvfN0rCBWOxIXJAaYgEed75p8mK3cI3Pw9ADTgGRLVPpYM4eu1Y-kpi3BZTn6hT-U1m-evXPWqQ9Rx5hg4oENkFw9sP_ABUDcs2LqdFpjnkW7KjSDDUaAL-l56w/s1600/Gemini_Generated_Image_yleseiyleseiyles.jpg" style="margin-left: 1em; margin-right: 1em;"><img alt="" data-original-height="752" data-original-width="1424" height="338" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhhwVgNaqnfzxZ3uO1zdEFfaxvJXg5c1oMkTRfr0og-WWj9hBRt4MXXZnE2M75PVrsSvfN0rCBWOxIXJAaYgEed75p8mK3cI3Pw9ADTgGRLVPpYM4eu1Y-kpi3BZTn6hT-U1m-evXPWqQ9Rx5hg4oENkFw9sP_ABUDcs2LqdFpjnkW7KjSDDUaAL-l56w/w640-h338/Gemini_Generated_Image_yleseiyleseiyles.jpg" width="640" /></a></div><br /></textarea>
 
-        <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhhwVgNaqnfzxZ3uO1zdEFfaxvJXg5c1oMkTRfr0og-WWj9hBRt4MXXZnE2M75PVrsSvfN0rCBWOxIXJAaYgEed75p8mK3cI3Pw9ADTgGRLVPpYM4eu1Y-kpi3BZTn6hT-U1m-evXPWqQ9Rx5hg4oENkFw9sP_ABUDcs2LqdFpjnkW7KjSDDUaAL-l56w/s1600/Gemini_Generated_Image_yleseiyleseiyles.jpg" alt="Slika">
-
-        <div class="image-text" id="copyText">
-            Ovdje ide vaš tekst
-        </div>
-
-    </div>
-
-    <br>
-
-    <button class="copy-btn" onclick="copyText()">
-        Copy
-    </button>
+<button onclick="copyHTML()" id="copyBtn">Copy HTML</button>
 
 </div>
 
 <script>
-function copyText() {
-    const text = document.getElementById("copyText").innerText;
+function copyHTML() {
+    const textarea = document.getElementById("htmlText");
 
-    navigator.clipboard.writeText(text).then(() => {
-        const btn = document.querySelector(".copy-btn");
-        btn.innerText = "Copied!";
-        
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        const btn = document.getElementById("copyBtn");
+        btn.textContent = "Copied!";
+
         setTimeout(() => {
-            btn.innerText = "Copy";
+            btn.textContent = "Copy HTML";
         }, 1500);
     });
 }
