@@ -1,0 +1,999 @@
+
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blogger Pagination PRO</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #f3f4f6;
+  color: #222;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+}
+
+h1 {
+  margin: 0 0 8px;
+}
+
+.description {
+  color: #666;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.panel {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  resize: vertical;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 15px 0;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 11px 17px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.secondary {
+  background: #e5e7eb;
+  color: #222;
+}
+
+.green {
+  background: #16a34a;
+  color: white;
+}
+
+button:hover {
+  opacity: .88;
+}
+
+.status {
+  margin-top: 12px;
+  color: #16803c;
+  font-size: 14px;
+}
+
+.preview {
+  background: white;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  min-height: 150px;
+  overflow: auto;
+}
+
+.preview-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 25px 0;
+}
+
+.preview-pagination button {
+  min-width: 38px;
+  height: 38px;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+}
+
+.preview-pagination button.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.preview-pagination button:disabled {
+  opacity: .4;
+}
+
+.preview-info {
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+
+.preview-ad {
+  background: #f5f5f5;
+  border: 1px dashed #bbb;
+  color: #777;
+  padding: 20px;
+  margin: 25px 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+}
+
+.checkbox-row input {
+  width: 18px;
+  height: 18px;
+}
+
+@media(max-width:600px) {
+  body {
+    padding: 10px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .controls {
+    align-items: stretch;
+  }
+
+  .controls button {
+    flex: 1;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Blogger Pagination PRO</h1>
+
+<div class="description">
+Zalijepi HTML članka, odaberi broj stranica i generiši
+HTML spreman za Blogger. Reklame se automatski ubacuju.
+</div>
+
+<div class="panel">
+
+<label for="inputHTML">HTML članka</label>
+
+<textarea id="inputHTML"
+placeholder="Zalijepi HTML tekst članka ovdje..."></textarea>
+
+<div class="controls">
+
+<label style="margin:0">Broj stranica:</label>
+
+<select id="pageCount">
+<option value="2">2 stranice</option>
+<option value="3">3 stranice</option>
+<option value="4">4 stranice</option>
+<option value="5" selected>5 stranica</option>
+<option value="6">6 stranica</option>
+<option value="7">7 stranica</option>
+<option value="8">8 stranica</option>
+<option value="9">9 stranica</option>
+<option value="10">10 stranica</option>
+</select>
+
+<label class="checkbox-row">
+<input type="checkbox" id="insertAds" checked>
+Automatski ubaci MGID reklame
+</label>
+
+</div>
+
+<div class="controls">
+
+<button class="primary" onclick="generateHTML()">
+Podijeli tekst
+</button>
+
+<button class="secondary" onclick="clearAll()">
+Očisti
+</button>
+
+</div>
+
+<div id="status" class="status"></div>
+
+</div>
+
+
+<div class="panel">
+
+<label>Pregled podijeljenog teksta</label>
+
+<div id="preview" class="preview">
+Ovdje će biti prikazan pregled.
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<label>HTML spreman za Blogger</label>
+
+<textarea id="outputHTML"
+placeholder="Generisani HTML će se pojaviti ovdje..."
+style="min-height:400px"></textarea>
+
+<div class="controls">
+
+<button class="green" onclick="copyHTML()">
+Kopiraj HTML
+</button>
+
+<button class="secondary" onclick="downloadHTML()">
+Sačuvaj HTML
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* MGID WIDGETI */
+
+const MGID_ADS = [
+  "1113798",
+  "1674325",
+  "1689711",
+  "2008645",
+  "2008641",
+  "2008634"
+];
+
+
+/* GENERISANJE REKLAME */
+
+function createAd(id) {
+
+  return `
+<div class="pagination-ad" style="margin:25px 0;text-align:center;">
+  <div data-type="_mgwidget" data-widget-id="${id}"></div>
+</div>
+`;
+
+}
+
+
+/* PRETVARANJE HTML-A U BLOKOVE */
+
+function getContentBlocks(html) {
+
+  const parser = new DOMParser();
+
+  const doc = parser.parseFromString(html, "text/html");
+
+  const blocks = [];
+
+  function processNode(node) {
+
+    if (node.nodeType === Node.TEXT_NODE) {
+
+      if (node.textContent.trim()) {
+        const p = document.createElement("p");
+        p.textContent = node.textContent.trim();
+        blocks.push(p.outerHTML);
+      }
+
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    const tag = node.tagName.toLowerCase();
+
+    if (
+      tag === "script" ||
+      tag === "style" ||
+      tag === "iframe" ||
+      tag === "noscript"
+    ) {
+      return;
+    }
+
+    /* Blokovi koji se ne trebaju dijeliti */
+
+    const atomicTags = [
+      "p", "h1", "h2", "h3", "h4", "h5", "h6",
+      "img", "figure", "blockquote", "ul", "ol",
+      "table", "pre", "hr"
+    ];
+
+    if (atomicTags.includes(tag)) {
+      blocks.push(node.outerHTML);
+      return;
+    }
+
+    /* DIV sa sadržajem razdvajamo na blokove */
+
+    if (tag === "div" || tag === "section" || tag === "article") {
+
+      const children = Array.from(node.childNodes);
+
+      if (children.length === 0) {
+        return;
+      }
+
+      children.forEach(processNode);
+
+      return;
+    }
+
+    /* Ostale elemente čuvamo */
+
+    blocks.push(node.outerHTML);
+
+  }
+
+  Array.from(doc.body.childNodes).forEach(processNode);
+
+  return blocks;
+}
+
+
+/* PROCJENA DUŽINE BLOKOVA */
+
+function getBlockWeight(html) {
+
+  const temp = document.createElement("div");
+
+  temp.innerHTML = html;
+
+  const text = temp.textContent || "";
+
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+
+  /* Slike i tabele imaju dodatnu težinu */
+
+  const hasImage = temp.querySelector("img,table");
+
+  return Math.max(words, hasImage ? 30 : 1);
+
+}
+
+
+/* PODJELA NA STRANICE */
+
+function splitIntoPages(blocks, pageCount) {
+
+  const weights = blocks.map(getBlockWeight);
+
+  const totalWeight = weights.reduce((a,b) => a + b, 0);
+
+  const pages = [];
+
+  let currentPage = [];
+  let currentWeight = 0;
+  let pageIndex = 0;
+
+  for (let i = 0; i < blocks.length; i++) {
+
+    const remainingBlocks = blocks.length - i;
+
+    const remainingPages = pageCount - pageIndex;
+
+    const targetWeight = totalWeight / pageCount;
+
+    if (
+      pageIndex < pageCount - 1 &&
+      currentPage.length > 0 &&
+      currentWeight >= targetWeight &&
+      remainingBlocks >= remainingPages
+    ) {
+
+      pages.push(currentPage);
+
+      currentPage = [];
+      currentWeight = 0;
+      pageIndex++;
+
+    }
+
+    currentPage.push(blocks[i]);
+
+    currentWeight += weights[i];
+
+  }
+
+  if (currentPage.length) {
+    pages.push(currentPage);
+  }
+
+  /* Ako ima manje blokova od broja stranica */
+
+  while (pages.length < pageCount) {
+    pages.push([]);
+  }
+
+  return pages;
+}
+
+
+/* UBACIVANJE REKLAMA */
+
+function insertAdsIntoPages(pages, adsEnabled, wordCount) {
+
+  if (!adsEnabled) return pages;
+
+  const adCount = wordCount > 400 ? 6 : 3;
+
+  const percentages = wordCount > 400
+    ? [0.25, 0.35, 0.50, 0.65, 0.75, 0.85]
+    : [0.25, 0.50, 0.75];
+
+  let allBlocks = [];
+
+  pages.forEach(page => {
+    allBlocks = allBlocks.concat(page);
+  });
+
+  const totalBlocks = allBlocks.length;
+
+  const adPositions = percentages.map(percent => {
+    return Math.min(
+      totalBlocks - 1,
+      Math.floor(totalBlocks * percent)
+    );
+  });
+
+  let globalIndex = 0;
+  let adIndex = 0;
+
+  const newPages = pages.map(page => {
+
+    const newPage = [];
+
+    page.forEach(block => {
+
+      while (
+        adIndex < adCount &&
+        globalIndex >= adPositions[adIndex]
+      ) {
+
+        newPage.push(createAd(MGID_ADS[adIndex]));
+
+        adIndex++;
+
+      }
+
+      newPage.push(block);
+
+      globalIndex++;
+
+    });
+
+    return newPage;
+
+  });
+
+  /* Dodavanje reklama koje ostanu na kraju */
+
+  while (adIndex < adCount) {
+
+    newPages[newPages.length - 1].push(
+      createAd(MGID_ADS[adIndex])
+    );
+
+    adIndex++;
+
+  }
+
+  return newPages;
+}
+
+
+/* GENERISANJE FINALNOG HTML-A */
+
+function generateHTML() {
+
+  const input = document.getElementById("inputHTML").value.trim();
+
+  const pageCount = parseInt(
+    document.getElementById("pageCount").value
+  );
+
+  const adsEnabled = document.getElementById("insertAds").checked;
+
+  const status = document.getElementById("status");
+
+  if (!input) {
+
+    status.textContent = "Prvo zalijepi HTML članka.";
+
+    return;
+
+  }
+
+  let blocks = getContentBlocks(input);
+
+  if (!blocks.length) {
+
+    status.textContent = "Nije pronađen tekst.";
+
+    return;
+
+  }
+
+  const wordCount = blocks.reduce((total, block) => {
+    return total + getBlockWeight(block);
+  }, 0);
+
+  let pages = splitIntoPages(blocks, pageCount);
+
+  pages = insertAdsIntoPages(pages, adsEnabled, wordCount);
+
+  let output = `
+<div id="blogger-pagination">
+
+<style>
+
+#blogger-pagination {
+  font-family: Verdana, sans-serif;
+  font-size: 19px;
+  line-height: 1.8;
+}
+
+#blogger-pagination .pagination-page[hidden] {
+  display:none!important;
+}
+
+#blogger-pagination .pagination-nav {
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  margin:30px 0 15px;
+}
+
+#blogger-pagination .pagination-nav button {
+  min-width:40px;
+  height:40px;
+  padding:5px 12px;
+  border:1px solid #ddd;
+  border-radius:5px;
+  background:#fff;
+  color:#333;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:bold;
+}
+
+#blogger-pagination .pagination-nav button.active {
+  background:#2563eb;
+  color:#fff;
+  border-color:#2563eb;
+}
+
+#blogger-pagination .pagination-nav button:disabled {
+  opacity:.4;
+  cursor:not-allowed;
+}
+
+#blogger-pagination .pagination-info {
+  text-align:center;
+  color:#888;
+  font-size:13px;
+  margin-bottom:25px;
+}
+
+#blogger-pagination .pagination-ad {
+  margin:25px 0;
+  text-align:center;
+}
+
+@media(max-width:480px) {
+  #blogger-pagination {
+    font-size:17px;
+  }
+
+  #blogger-pagination .pagination-nav button {
+    min-width:34px;
+    height:38px;
+    padding:5px 9px;
+  }
+}
+
+</style>
+`;
+
+  pages.forEach((page, index) => {
+
+    output += `
+<section class="pagination-page" data-page="${index + 1}" ${index === 0 ? "" : "hidden"}>
+`;
+
+    page.forEach(block => {
+      output += block + "\n";
+    });
+
+    output += `
+</section>
+`;
+
+  });
+
+
+  output += `
+<div class="pagination-nav">
+<button type="button" class="pagination-prev" disabled>‹ Prethodna</button>
+<div class="pagination-numbers"></div>
+<button type="button" class="pagination-next">Sljedeća ›</button>
+</div>
+
+<div class="pagination-info"></div>
+
+<script>
+(function(){
+
+const root = document.getElementById("blogger-pagination");
+
+if(!root || root.dataset.ready) return;
+
+root.dataset.ready = "1";
+
+const pages = root.querySelectorAll(".pagination-page");
+const numbers = root.querySelector(".pagination-numbers");
+const prev = root.querySelector(".pagination-prev");
+const next = root.querySelector(".pagination-next");
+const info = root.querySelector(".pagination-info");
+
+const total = pages.length;
+
+let current = 1;
+
+function showPage(page, updateHash){
+
+page = Math.max(1,Math.min(total,page));
+
+current = page;
+
+pages.forEach((section,index)=>{
+section.hidden = index + 1 !== page;
+});
+
+prev.disabled = page === 1;
+next.disabled = page === total;
+
+numbers.querySelectorAll("button").forEach((button,index)=>{
+
+button.classList.toggle("active",index + 1 === page);
+
+if(index + 1 === page){
+button.setAttribute("aria-current","page");
+}else{
+button.removeAttribute("aria-current");
+}
+
+});
+
+info.textContent = "Stranica " + page + " od " + total;
+
+if(updateHash){
+history.replaceState(null,"","#page-" + page);
+}
+
+window.scrollTo({
+top:root.getBoundingClientRect().top + window.scrollY - 15,
+behavior:"instant"
+});
+
+}
+
+for(let i=1;i<=total;i++){
+
+const button=document.createElement("button");
+
+button.type="button";
+button.textContent=i;
+
+button.addEventListener("click",()=>{
+showPage(i,true);
+});
+
+numbers.appendChild(button);
+
+}
+
+prev.addEventListener("click",()=>{
+showPage(current-1,true);
+});
+
+next.addEventListener("click",()=>{
+showPage(current+1,true);
+});
+
+const match=location.hash.match(/^#page-(\\d+)$/);
+
+showPage(match?parseInt(match[1]):1,false);
+
+})();
+<\/script>
+`;
+
+  /* MGID loader - jedan loader za sve widgete */
+
+  if (adsEnabled) {
+
+    output += `
+<script>
+(function(w,q){
+w[q]=w[q]||[];
+w[q].push(["_mgc.load"]);
+})(window,"_mgq");
+<\/script>
+`;
+
+  }
+
+  output += `
+</div>
+`;
+
+  document.getElementById("outputHTML").value = output;
+
+  renderPreview(pages);
+
+  status.textContent =
+    "Uspješno! " + pages.length +
+    " stranica | " + wordCount +
+    " riječi | " +
+    (adsEnabled ? "MGID reklame ubačene." : "Bez reklama.");
+
+}
+
+
+/* PREGLED */
+
+function renderPreview(pages) {
+
+  const preview = document.getElementById("preview");
+
+  let current = 1;
+
+  function renderPage() {
+
+    preview.innerHTML = "";
+
+    const content = document.createElement("div");
+
+    content.style.fontFamily = "Verdana,sans-serif";
+    content.style.fontSize = "17px";
+    content.style.lineHeight = "1.8";
+
+    pages[current - 1].forEach(block => {
+
+      if (block.includes("data-widget-id")) {
+
+        const ad = document.createElement("div");
+
+        ad.className = "preview-ad";
+        ad.textContent = "MGID REKLAMA";
+
+        content.appendChild(ad);
+
+      } else {
+
+        const temp = document.createElement("div");
+
+        temp.innerHTML = block;
+
+        content.appendChild(temp);
+
+      }
+
+    });
+
+    preview.appendChild(content);
+
+    const nav = document.createElement("div");
+
+    nav.className = "preview-pagination";
+
+    const prev = document.createElement("button");
+
+    prev.textContent = "‹ Prethodna";
+    prev.disabled = current === 1;
+
+    prev.onclick = () => {
+      current--;
+      renderPage();
+    };
+
+    nav.appendChild(prev);
+
+    pages.forEach((_, index) => {
+
+      const btn = document.createElement("button");
+
+      btn.textContent = index + 1;
+
+      if (index + 1 === current) {
+        btn.className = "active";
+      }
+
+      btn.onclick = () => {
+        current = index + 1;
+        renderPage();
+      };
+
+      nav.appendChild(btn);
+
+    });
+
+    const next = document.createElement("button");
+
+    next.textContent = "Sljedeća ›";
+    next.disabled = current === pages.length;
+
+    next.onclick = () => {
+      current++;
+      renderPage();
+    };
+
+    nav.appendChild(next);
+
+    preview.appendChild(nav);
+
+    const info = document.createElement("div");
+
+    info.className = "preview-info";
+
+    info.textContent =
+      "Stranica " + current + " od " + pages.length;
+
+    preview.appendChild(info);
+
+  }
+
+  renderPage();
+
+}
+
+
+/* KOPIRANJE */
+
+function copyHTML() {
+
+  const output = document.getElementById("outputHTML");
+
+  if (!output.value) {
+    alert("Prvo generiši HTML.");
+    return;
+  }
+
+  navigator.clipboard.writeText(output.value)
+    .then(() => {
+      document.getElementById("status").textContent =
+        "HTML uspješno kopiran!";
+    })
+    .catch(() => {
+
+      output.select();
+
+      document.execCommand("copy");
+
+      document.getElementById("status").textContent =
+        "HTML kopiran.";
+
+    });
+
+}
+
+
+/* DOWNLOAD */
+
+function downloadHTML() {
+
+  const html = document.getElementById("outputHTML").value;
+
+  if (!html) {
+    alert("Prvo generiši HTML.");
+    return;
+  }
+
+  const blob = new Blob([html], {
+    type:"text/html;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "blogger-pagination.html";
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+/* BRISANJE */
+
+function clearAll() {
+
+  document.getElementById("inputHTML").value = "";
+  document.getElementById("outputHTML").value = "";
+  document.getElementById("preview").innerHTML =
+    "Ovdje će biti prikazan pregled.";
+  document.getElementById("status").textContent = "";
+
+}
+
+
+/* IZLOŽI FUNKCIJE */
+
+window.generateHTML = generateHTML;
+window.copyHTML = copyHTML;
+window.downloadHTML = downloadHTML;
+window.clearAll = clearAll;
+
+</script>
+
+</body>
+</html>
