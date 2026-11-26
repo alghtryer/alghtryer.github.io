@@ -1,0 +1,427 @@
+
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blogger Pagination – 3 stranice</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:22px;background:#f3f4f6;color:#222;font-family:Arial,sans-serif}
+.wrap{max-width:1050px;margin:auto}
+h1{font-size:25px;margin:0 0 8px}
+.sub{color:#666;line-height:1.5;margin:0 0 20px}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin:16px 0}
+label{display:block;font-weight:700;margin-bottom:8px}
+textarea{width:100%;min-height:300px;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font:13px/1.5 Consolas,monospace;resize:vertical}
+button{border:0;border-radius:6px;padding:11px 16px;font-weight:700;cursor:pointer}
+.primary{background:#2563eb;color:#fff}
+.secondary{background:#e5e7eb;color:#222}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.status{font-size:14px;color:#16803c;margin-top:12px;white-space:pre-wrap}
+.preview{border:1px solid #e5e7eb;border-radius:7px;padding:18px;min-height:130px;line-height:1.7;overflow-wrap:anywhere}
+.nav{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;margin:24px 0 12px}
+.nav button{background:#fff;border:1px solid #ddd;min-width:38px;padding:9px 12px}
+.nav button.active{background:#2563eb;color:#fff;border-color:#2563eb}
+.nav button:disabled{opacity:.4;cursor:not-allowed}
+.info{text-align:center;color:#777;font-size:13px}
+@media(max-width:600px){
+ body{padding:10px}
+ .panel{padding:13px}
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h1>Blogger Pagination – 3 stranice</h1>
+<p class="sub">
+Zalijepi HTML koji je već pripremio URL Extractor PRO.
+Ovaj alat dijeli postojeći HTML na tri dijela i čuva MGID blokove i skripte.
+</p>
+
+<div class="panel">
+<label for="source">HTML članka iz URL Extractor PRO</label>
+<textarea id="source" placeholder="Zalijepi kompletan HTML članka ovdje..."></textarea>
+
+<div class="controls">
+<button class="primary" id="make">Podijeli na 3 stranice</button>
+<button class="secondary" id="clear">Očisti</button>
+</div>
+
+<div class="status" id="status"></div>
+</div>
+
+<div class="panel">
+<label>Pregled (probno prebacivanje)</label>
+<div class="preview" id="preview">Pregled će se prikazati nakon podjele.</div>
+<div class="nav" id="previewNav" hidden></div>
+<div class="info" id="previewInfo"></div>
+</div>
+
+<div class="panel">
+<label for="result">HTML spreman za Blogger</label>
+<textarea id="result" style="min-height:390px" placeholder="Generisani HTML će se pojaviti ovdje..."></textarea>
+
+<div class="controls">
+<button class="primary" id="copy">Kopiraj HTML</button>
+<button class="secondary" id="download">Preuzmi HTML</button>
+</div>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+const $ = id => document.getElementById(id);
+let previewPages = [];
+let previewPage = 0;
+
+function extractContent(raw){
+  const doc = new DOMParser().parseFromString(raw, "text/html");
+
+  const meaningful = Array.from(doc.body.childNodes).filter(n =>
+    !(n.nodeType === Node.TEXT_NODE && !n.textContent.trim())
+  );
+
+  let style = "";
+  let content = raw;
+
+  if(meaningful.length === 1 && meaningful[0].nodeType === Node.ELEMENT_NODE){
+    const el = meaningful[0];
+    style = el.getAttribute("style") || "";
+    content = el.innerHTML;
+  }else{
+    content = doc.body.innerHTML;
+  }
+
+  return {content, style};
+}
+
+function splitIntoUnits(html){
+  const re = /(?:<br\s*\/?>\s*){2,}/ig;
+  const units = [];
+  let last = 0;
+  let match;
+
+  while((match = re.exec(html)) !== null){
+    const unit = html.slice(last, match.index) + match[0];
+
+    if(unit.trim()) units.push(unit);
+
+    last = re.lastIndex;
+  }
+
+  const tail = html.slice(last);
+
+  if(tail.trim()) units.push(tail);
+
+  return units.length ? units : [html];
+}
+
+function visibleWords(html){
+  const box = document.createElement("div");
+  box.innerHTML = html;
+
+  box.querySelectorAll("script,style,noscript").forEach(n=>n.remove());
+
+  const text = (box.textContent || "").replace(/\s+/g," ").trim();
+
+  return text ? text.split(" ").length : 0;
+}
+
+function divideThree(units){
+  const weights = units.map(visibleWords);
+  const total = weights.reduce((a,b)=>a+b,0);
+  const cuts = [];
+
+  let start = 0;
+
+  for(let part=1; part<=2; part++){
+    const target = total * part / 3;
+    let bestIndex = start + 1;
+    let bestDiff = Infinity;
+
+    for(let i=start+1; i<=units.length-(3-part); i++){
+      const cumulative = weights.slice(0,i).reduce((a,b)=>a+b,0);
+      const diff = Math.abs(cumulative-target);
+
+      if(diff < bestDiff){
+        bestDiff = diff;
+        bestIndex = i;
+      }
+    }
+
+    cuts.push(bestIndex);
+    start = bestIndex;
+  }
+
+  const a = cuts[0];
+  const b = cuts[1];
+
+  return [
+    units.slice(0,a),
+    units.slice(a,b),
+    units.slice(b)
+  ];
+}
+
+function makeOutput(pages, style){
+
+  const safeStyle = style.replace(/"/g, "&quot;");
+
+  let out = '<div id="blogger-pagination"' +
+    (safeStyle ? ' style="'+safeStyle+'"' : '') + '>\n';
+
+  out += '<style>\n';
+  out += '#blogger-pagination .bp-page[hidden]{display:none!important;}\n';
+  out += '#blogger-pagination .bp-nav{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;margin:30px 0 12px;}\n';
+  out += '#blogger-pagination .bp-nav button{min-width:40px;height:40px;padding:5px 11px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#333;font-size:15px;font-weight:bold;cursor:pointer;}\n';
+  out += '#blogger-pagination .bp-nav button.bp-active{background:#2563eb;color:#fff;border-color:#2563eb;}\n';
+  out += '#blogger-pagination .bp-nav button:disabled{opacity:.4;cursor:not-allowed;}\n';
+  out += '#blogger-pagination .bp-info{text-align:center;color:#888;font-size:13px;margin:10px 0 25px;}\n';
+  out += '@media(max-width:480px){#blogger-pagination .bp-nav button{min-width:35px;height:38px;padding:5px 9px;}}\n';
+  out += '</style>\n';
+
+  pages.forEach((units,i)=>{
+    out += '<section class="bp-page" data-bp-page="'+(i+1)+'"' +
+      (i===0?'':' hidden') + '>\n';
+
+    out += units.join('\n') + '\n';
+    out += '</section>\n';
+  });
+
+  out += '<div class="bp-nav" aria-label="Navigacija stranica">';
+  out += '<button type="button" class="bp-prev" disabled>‹ Prethodna</button>';
+  out += '<span class="bp-numbers"></span>';
+  out += '<button type="button" class="bp-next">Sljedeća ›</button>';
+  out += '</div>';
+
+  out += '<div class="bp-info">Stranica 1 od 3</div>\n';
+
+  out += '<script>(function(){\n';
+
+  out += 'var root=document.getElementById("blogger-pagination");';
+  out += 'if(!root||root.getAttribute("data-bp-ready"))return;';
+  out += 'root.setAttribute("data-bp-ready","1");\n';
+
+  out += 'var pages=root.querySelectorAll(".bp-page"),';
+  out += 'numbers=root.querySelector(".bp-numbers"),';
+  out += 'prev=root.querySelector(".bp-prev"),';
+  out += 'next=root.querySelector(".bp-next"),';
+  out += 'info=root.querySelector(".bp-info"),';
+  out += 'current=1,total=pages.length;\n';
+
+  out += 'function show(n,hash){';
+  out += 'n=Math.max(1,Math.min(total,n));';
+  out += 'current=n;';
+  out += 'pages.forEach(function(p,i){p.hidden=i!==n-1;});';
+  out += 'prev.disabled=n===1;';
+  out += 'next.disabled=n===total;';
+  out += 'numbers.querySelectorAll("button").forEach(function(b,i){';
+  out += 'b.classList.toggle("bp-active",i===n-1);';
+  out += 'if(i===n-1)b.setAttribute("aria-current","page");';
+  out += 'else b.removeAttribute("aria-current");';
+  out += '});';
+  out += 'info.textContent="Stranica "+n+" od "+total;';
+  out += 'if(hash){history.replaceState(null,"","#page-"+n);}';
+  out += '}\n';
+
+  out += 'for(var i=1;i<=total;i++){(function(n){';
+  out += 'var b=document.createElement("button");';
+  out += 'b.type="button";b.textContent=n;';
+  out += 'b.addEventListener("click",function(){show(n,true);});';
+  out += 'numbers.appendChild(b);';
+  out += '})(i);}\n';
+
+  out += 'prev.addEventListener("click",function(){show(current-1,true);});';
+  out += 'next.addEventListener("click",function(){show(current+1,true);});\n';
+
+  out += 'var m=location.hash.match(/^#page-(\\d+)$/);';
+  out += 'show(m?parseInt(m[1],10):1,false);\n';
+
+  out += '})();<\/script>\n';
+  out += '</div>';
+
+  return out;
+}
+
+function renderPreview(pages){
+  previewPages = pages;
+  previewPage = 0;
+  drawPreview();
+}
+
+function drawPreview(){
+
+  const box = $("preview");
+  box.innerHTML = "";
+
+  const content = document.createElement("div");
+  content.innerHTML = previewPages[previewPage].join("\n");
+
+  content.querySelectorAll('div[data-type="_mgwidget"]').forEach(el=>{
+    const label = document.createElement("div");
+
+    label.textContent = "MGID reklamna pozicija (sačuvana)";
+    label.style.cssText =
+      "padding:16px;margin:18px 0;text-align:center;background:#f3f4f6;border:1px dashed #aaa;color:#666;font:13px Arial";
+
+    el.replaceWith(label);
+  });
+
+  content.querySelectorAll("script").forEach(el=>el.remove());
+
+  box.appendChild(content);
+
+  const nav = $("previewNav");
+  nav.hidden = false;
+  nav.innerHTML = "";
+
+  const prev = document.createElement("button");
+  prev.textContent = "‹ Prethodna";
+  prev.disabled = previewPage === 0;
+  prev.onclick = ()=>{
+    previewPage--;
+    drawPreview();
+  };
+  nav.appendChild(prev);
+
+  for(let i=0;i<3;i++){
+    const b = document.createElement("button");
+    b.textContent = i+1;
+
+    if(i===previewPage) b.className = "active";
+
+    b.onclick = ()=>{
+      previewPage = i;
+      drawPreview();
+    };
+
+    nav.appendChild(b);
+  }
+
+  const next = document.createElement("button");
+  next.textContent = "Sljedeća ›";
+  next.disabled = previewPage === 2;
+  next.onclick = ()=>{
+    previewPage++;
+    drawPreview();
+  };
+  nav.appendChild(next);
+
+  $("previewInfo").textContent =
+    "Stranica "+(previewPage+1)+" od 3";
+}
+
+$("make").addEventListener("click",()=>{
+
+  const raw = $("source").value.trim();
+
+  if(!raw){
+    $("status").textContent = "Prvo zalijepi HTML članka.";
+    return;
+  }
+
+  try{
+
+    const extracted = extractContent(raw);
+    const units = splitIntoUnits(extracted.content);
+
+    if(units.length < 3){
+      $("status").textContent =
+        "HTML nema dovoljno odvojenih blokova za pouzdanu podjelu na tri stranice. Provjeri da li su paragrafi odvojeni sa <br><br>.";
+      return;
+    }
+
+    const pages = divideThree(units);
+    const counts = pages.map(p=>
+      p.reduce((n,u)=>n+visibleWords(u),0)
+    );
+
+    if(pages.some(p=>p.length===0)){
+      $("status").textContent =
+        "Nije moguće napraviti tri neprazne stranice iz ovog HTML-a.";
+      return;
+    }
+
+    $("result").value = makeOutput(pages,extracted.style);
+
+    renderPreview(pages);
+
+    const ads =
+      (extracted.content.match(/data-type\s*=\s*["_']?_mgwidget/gi)||[]).length;
+
+    $("status").textContent =
+      "Gotovo: 3 stranice. Riječi po stranici: "+
+      counts.join(" / ")+
+      ". Sačuvano MGID widgeta: "+ads+
+      ". Reklamni HTML i pripadajuće skripte nisu ponovo generisani.";
+
+  }catch(e){
+
+    $("status").textContent =
+      "Greška pri obradi HTML-a: "+e.message;
+
+  }
+});
+
+$("clear").addEventListener("click",()=>{
+  $("source").value = "";
+  $("result").value = "";
+  $("preview").textContent =
+    "Pregled će se prikazati nakon podjele.";
+  $("previewNav").hidden = true;
+  $("previewInfo").textContent = "";
+  $("status").textContent = "";
+});
+
+$("copy").addEventListener("click",async()=>{
+
+  const value = $("result").value;
+
+  if(!value){
+    $("status").textContent = "Prvo podijeli HTML.";
+    return;
+  }
+
+  try{
+    await navigator.clipboard.writeText(value);
+    $("status").textContent = "HTML je kopiran.";
+  }catch(e){
+    $("result").select();
+    document.execCommand("copy");
+    $("status").textContent = "HTML je kopiran.";
+  }
+});
+
+$("download").addEventListener("click",()=>{
+
+  const value = $("result").value;
+
+  if(!value){
+    $("status").textContent = "Prvo podijeli HTML.";
+    return;
+  }
+
+  const blob = new Blob([value],{
+    type:"text/html;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "blogger-clanak-3-stranice.html";
+  a.click();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+
+})();
+</script>
+</body>
+</html>
